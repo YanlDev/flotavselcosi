@@ -23,8 +23,13 @@ Route::get('/registro/{token}', function (string $token) {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
 
-    // Stubs — serán reemplazados por componentes Livewire en siguientes fases
-    Route::view('vehiculos', 'dashboard')->name('vehiculos.index');
+    // Vehículos
+    Route::livewire('vehiculos', 'pages::vehiculos.index')->name('vehiculos.index');
+    Route::livewire('vehiculos/crear', 'pages::vehiculos.form')->name('vehiculos.crear');
+    Route::livewire('vehiculos/{vehiculo}/editar', 'pages::vehiculos.form')->name('vehiculos.editar');
+    Route::livewire('vehiculos/{vehiculo}', 'pages::vehiculos.show')->name('vehiculos.show');
+
+    // Stubs — serán reemplazados en fases siguientes
     Route::view('combustible', 'dashboard')->name('combustible.index');
     Route::view('alertas', 'dashboard')->name('alertas.index');
     Route::view('conductores', 'dashboard')->name('conductores.index');
