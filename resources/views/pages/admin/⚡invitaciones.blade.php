@@ -1,0 +1,227 @@
+<?php
+
+use App\Mail\InvitacionMail;
+use App\Models\Invitacion;
+use App\Models\Sucursal;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Title;
+use Livewire\Component;
+
+new #[Title('Invitaciones')] class extends Component {
+    public string $email = '';
+    public string $rol = '';
+    public ?int $sucursalId = null;
+
+    public bool $showCreateModal = false;
+
+    public function mount(): void
+    {
+        abort_unless(auth()->user()->esAdmin(), 403);
+    }
+
+    #[Computed]
+    public function invitaciones(): \Illuminate\Database\Eloquent\Collection
+    {
+        return Invitacion::with(['sucursal', 'invitadoPor'])
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    #[Computed]
+    public function sucursales(): \Illuminate\Database\Eloquent\Collection
+    {
+        return Sucursal::activas()->orderBy('nombre')->get();
+    }
+
+    public function openCreate(): void
+    {
+        $this->reset(['email', 'rol', 'sucursalId']);
+        $this->resetValidation();
+        $this->showCreateModal = true;
+    }
+
+    public function crear(): void
+    {
+        abort_unless(auth()->user()->esAdmin(), 403);
+
+        $this->validate([
+            'email' => ['required', 'email', 'max:255'],
+            'rol' => ['required', 'in:admin,jefe_resguardo,visor'],
+            'sucursalId' => [
+                'nullable',
+                'exists:sucursales,id',
+                $this->rol !== 'admin' ? 'required' : 'nullable',
+            ],
+        ]);
+
+        $invitacion = Invitacion::create([
+            'token' => Str::random(64),
+            'email' => $this->email,
+            'rol' => $this->rol,
+            'sucursal_id' => $this->rol === 'admin' ? null : $this->sucursalId,
+            'invitado_por' => auth()->id(),
+            'expira_en' => now()->addDays(7),
+        ]);
+
+        Mail::to($invitacion->email)->queue(new InvitacionMail($invitacion));
+
+        $this->showCreateModal = false;
+        $this->reset(['email', 'rol', 'sucursalId']);
+    }
+
+    public function estadoBadgeColor(string $estado): string
+    {
+        return match ($estado) {
+            'activo' => 'green',
+            'usado' => 'zinc',
+            'expirado' => 'red',
+            default => 'zinc',
+        };
+    }
+
+    public function estadoLabel(string $estado): string
+    {
+        return match ($estado) {
+            'activo' => 'Activo',
+            'usado' => 'Usado',
+            'expirado' => 'Expirado',
+            default => $estado,
+        };
+    }
+
+    public function rolLabel(string $rol): string
+    {
+        return match ($rol) {
+            'admin' => 'Admin',
+            'jefe_resguardo' => 'Jefe de resguardo',
+            'visor' => 'Visor',
+            default => $rol,
+        };
+    }
+}; ?>
+
+<section class="w-full">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <flux:heading size="xl">{{ __('Invitaciones') }}</flux:heading>
+            <flux:text>{{ __('Gestiona los accesos enviados por correo.') }}</flux:text>
+        </div>
+        <flux:button wire:click="openCreate" variant="primary" icon="envelope">
+            {{ __('Nueva invitación') }}
+        </flux:button>
+    </div>
+
+    <flux:table>
+        <flux:table.columns>
+            <flux:table.column>{{ __('Email') }}</flux:table.column>
+            <flux:table.column>{{ __('Rol') }}</flux:table.column>
+            <flux:table.column>{{ __('Sucursal') }}</flux:table.column>
+            <flux:table.column>{{ __('Expira') }}</flux:table.column>
+            <flux:table.column>{{ __('Estado') }}</flux:table.column>
+            <flux:table.column></flux:table.column>
+        </flux:table.columns>
+
+        <flux:table.rows>
+            @foreach ($this->invitaciones as $inv)
+                <flux:table.row :key="$inv->id">
+                    <flux:table.cell>{{ $inv->email }}</flux:table.cell>
+
+                    <flux:table.cell>
+                        <flux:badge color="blue">{{ $this->rolLabel($inv->rol) }}</flux:badge>
+                    </flux:table.cell>
+
+                    <flux:table.cell>{{ $inv->sucursal?->nombre ?? '—' }}</flux:table.cell>
+
+                    <flux:table.cell>
+                        <flux:text>{{ $inv->expira_en->format('d/m/Y') }}</flux:text>
+                    </flux:table.cell>
+
+                    <flux:table.cell>
+                        <flux:badge :color="$this->estadoBadgeColor($inv->estado)">
+                            {{ $this->estadoLabel($inv->estado) }}
+                        </flux:badge>
+                    </flux:table.cell>
+
+                    <flux:table.cell>
+                        @if ($inv->estaActiva())
+                            <flux:tooltip :content="__('Copiar enlace')">
+                                <flux:button
+                                    size="sm"
+                                    variant="subtle"
+                                    icon="clipboard-document"
+                                    inset="top bottom"
+                                    x-on:click="
+                                        navigator.clipboard.writeText('{{ route('registro.invitacion', $inv->token) }}');
+                                        $flux.toast('{{ __('Enlace copiado') }}');
+                                    "
+                                />
+                            </flux:tooltip>
+                        @endif
+                    </flux:table.cell>
+                </flux:table.row>
+            @endforeach
+        </flux:table.rows>
+    </flux:table>
+
+    @if ($this->invitaciones->isEmpty())
+        <div class="py-12 text-center">
+            <flux:text>{{ __('No hay invitaciones registradas.') }}</flux:text>
+        </div>
+    @endif
+
+    {{-- Modal nueva invitación --}}
+    <flux:modal wire:model.self="showCreateModal" class="md:w-96">
+        <div class="space-y-6">
+            <flux:heading size="lg">{{ __('Nueva invitación') }}</flux:heading>
+
+            <form wire:submit="crear" class="space-y-4">
+                <flux:input
+                    wire:model="email"
+                    :label="__('Email')"
+                    type="email"
+                    :placeholder="__('correo@ejemplo.com')"
+                    required
+                />
+
+                <flux:select
+                    wire:model.live="rol"
+                    :label="__('Rol')"
+                    required
+                >
+                    <flux:select.option value="">{{ __('Seleccionar rol') }}</flux:select.option>
+                    <flux:select.option value="admin">{{ __('Admin') }}</flux:select.option>
+                    <flux:select.option value="jefe_resguardo">{{ __('Jefe de resguardo') }}</flux:select.option>
+                    <flux:select.option value="visor">{{ __('Visor') }}</flux:select.option>
+                </flux:select>
+
+                @if ($rol !== '' && $rol !== 'admin')
+                    <flux:select
+                        wire:model="sucursalId"
+                        :label="__('Sucursal')"
+                        required
+                    >
+                        <flux:select.option value="">{{ __('Seleccionar sucursal') }}</flux:select.option>
+                        @foreach ($this->sucursales as $sucursal)
+                            <flux:select.option :value="$sucursal->id">{{ $sucursal->nombre }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                @endif
+
+                <flux:text size="sm" class="text-zinc-500">
+                    {{ __('Se enviará un email con el enlace de registro. El enlace expira en 7 días.') }}
+                </flux:text>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <flux:modal.close>
+                        <flux:button variant="ghost">{{ __('Cancelar') }}</flux:button>
+                    </flux:modal.close>
+                    <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                        {{ __('Enviar invitación') }}
+                    </flux:button>
+                </div>
+            </form>
+        </div>
+    </flux:modal>
+</section>
