@@ -21,3 +21,12 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Claude Code
+/.claude
+CLAUDE.md
+PLAN.md
+.mcp.json
+
+# Tests
+/tests

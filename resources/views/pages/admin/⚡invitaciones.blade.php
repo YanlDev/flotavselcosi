@@ -1,9 +1,7 @@
 <?php
 
-use App\Mail\InvitacionMail;
 use App\Models\Invitacion;
 use App\Models\Sucursal;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -15,6 +13,8 @@ new #[Title('Invitaciones')] class extends Component {
     public ?int $sucursalId = null;
 
     public bool $showCreateModal = false;
+    public bool $showLinkModal = false;
+    public string $linkGenerado = '';
 
     public function mount(): void
     {
@@ -65,9 +65,10 @@ new #[Title('Invitaciones')] class extends Component {
             'expira_en' => now()->addDays(7),
         ]);
 
-        Mail::to($invitacion->email)->queue(new InvitacionMail($invitacion));
+        $this->linkGenerado = route('registro.invitacion', $invitacion->token);
 
         $this->showCreateModal = false;
+        $this->showLinkModal = true;
         $this->reset(['email', 'rol', 'sucursalId']);
     }
 
@@ -106,9 +107,9 @@ new #[Title('Invitaciones')] class extends Component {
     <div class="flex items-center justify-between mb-6">
         <div>
             <flux:heading size="xl">{{ __('Invitaciones') }}</flux:heading>
-            <flux:text>{{ __('Gestiona los accesos enviados por correo.') }}</flux:text>
+            <flux:text>{{ __('Genera enlaces de registro y compártelos manualmente.') }}</flux:text>
         </div>
-        <flux:button wire:click="openCreate" variant="primary" icon="envelope">
+        <flux:button wire:click="openCreate" variant="primary" icon="link">
             {{ __('Nueva invitación') }}
         </flux:button>
     </div>
@@ -185,11 +186,7 @@ new #[Title('Invitaciones')] class extends Component {
                     required
                 />
 
-                <flux:select
-                    wire:model.live="rol"
-                    :label="__('Rol')"
-                    required
-                >
+                <flux:select wire:model.live="rol" :label="__('Rol')" required>
                     <flux:select.option value="">{{ __('Seleccionar rol') }}</flux:select.option>
                     <flux:select.option value="admin">{{ __('Admin') }}</flux:select.option>
                     <flux:select.option value="jefe_resguardo">{{ __('Jefe de resguardo') }}</flux:select.option>
@@ -197,11 +194,7 @@ new #[Title('Invitaciones')] class extends Component {
                 </flux:select>
 
                 @if ($rol !== '' && $rol !== 'admin')
-                    <flux:select
-                        wire:model="sucursalId"
-                        :label="__('Sucursal')"
-                        required
-                    >
+                    <flux:select wire:model="sucursalId" :label="__('Sucursal')" required>
                         <flux:select.option value="">{{ __('Seleccionar sucursal') }}</flux:select.option>
                         @foreach ($this->sucursales as $sucursal)
                             <flux:select.option :value="$sucursal->id">{{ $sucursal->nombre }}</flux:select.option>
@@ -209,19 +202,47 @@ new #[Title('Invitaciones')] class extends Component {
                     </flux:select>
                 @endif
 
-                <flux:text size="sm" class="text-zinc-500">
-                    {{ __('Se enviará un email con el enlace de registro. El enlace expira en 7 días.') }}
-                </flux:text>
-
                 <div class="flex justify-end gap-2 pt-2">
                     <flux:modal.close>
                         <flux:button variant="ghost">{{ __('Cancelar') }}</flux:button>
                     </flux:modal.close>
                     <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
-                        {{ __('Enviar invitación') }}
+                        {{ __('Generar enlace') }}
                     </flux:button>
                 </div>
             </form>
+        </div>
+    </flux:modal>
+
+    {{-- Modal mostrar link generado --}}
+    <flux:modal wire:model.self="showLinkModal" class="md:w-lg" :dismissible="false">
+        <div class="space-y-4">
+            <div>
+                <flux:heading size="lg">{{ __('Enlace generado') }}</flux:heading>
+                <flux:text class="mt-1">
+                    {{ __('Copia y comparte este enlace. Solo puede usarse una vez y expira en 7 días.') }}
+                </flux:text>
+            </div>
+
+            <div class="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
+                <flux:text class="flex-1 break-all text-sm font-mono">{{ $linkGenerado }}</flux:text>
+                <flux:button
+                    size="sm"
+                    variant="subtle"
+                    icon="clipboard-document"
+                    class="shrink-0"
+                    x-on:click="
+                        navigator.clipboard.writeText('{{ $linkGenerado }}');
+                        $flux.toast('{{ __('Enlace copiado') }}');
+                    "
+                />
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <flux:modal.close>
+                    <flux:button variant="primary">{{ __('Listo') }}</flux:button>
+                </flux:modal.close>
+            </div>
         </div>
     </flux:modal>
 </section>
