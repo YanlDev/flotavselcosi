@@ -99,24 +99,8 @@ new #[Title('Combustible')] class extends Component {
             abort_unless($vehiculo->sucursal_id === auth()->user()->sucursal_id, 403);
         }
 
-        $facturaFile = new \Illuminate\Http\UploadedFile(
-            $this->fotoFactura->getRealPath(),
-            $this->fotoFactura->getClientOriginalName(),
-            $this->fotoFactura->getMimeType(),
-            null,
-            true
-        );
-
-        $odometroFile = new \Illuminate\Http\UploadedFile(
-            $this->fotoOdometro->getRealPath(),
-            $this->fotoOdometro->getClientOriginalName(),
-            $this->fotoOdometro->getMimeType(),
-            null,
-            true
-        );
-
-        $facturaKey  = $wasabi->upload($facturaFile, "combustible/{$vehiculo->id}/facturas");
-        $odometroKey = $wasabi->upload($odometroFile, "combustible/{$vehiculo->id}/odometros");
+        $facturaKey  = $wasabi->upload($this->fotoFactura, "combustible/{$vehiculo->id}/facturas");
+        $odometroKey = $wasabi->upload($this->fotoOdometro, "combustible/{$vehiculo->id}/odometros");
 
         RegistroCombustible::create([
             'vehiculo_id'         => $vehiculo->id,

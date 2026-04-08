@@ -321,8 +321,13 @@ new #[Title('Detalle vehículo')] class extends Component {
             <livewire:pages::vehiculos.documentos :vehiculo="$vehiculo" lazy />
         </div>
 
+        {{-- Tab: Combustible --}}
+        <div x-show="tab === 'combustible'" x-cloak>
+            <livewire:pages::vehiculos.combustible :vehiculo="$vehiculo" lazy />
+        </div>
+
         {{-- Tabs placeholders FASE 2 --}}
-        @foreach (['combustible', 'mantenimientos', 'fotos'] as $tabKey)
+        @foreach (['mantenimientos', 'fotos'] as $tabKey)
             <div x-show="tab === '{{ $tabKey }}'" x-cloak>
                 <div class="flex flex-col items-center justify-center py-20 text-center">
                     <flux:icon name="wrench-screwdriver" class="mb-3 size-10 text-zinc-300 dark:text-zinc-600" />
