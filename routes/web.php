@@ -3,7 +3,11 @@
 use App\Models\Invitacion;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome')->name('home');
+Route::get('/', function () {
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
+})->name('home');
 
 /**
  * Registro exclusivamente por invitación.
@@ -29,8 +33,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('vehiculos/{vehiculo}/editar', 'pages::vehiculos.form')->name('vehiculos.editar');
     Route::livewire('vehiculos/{vehiculo}', 'pages::vehiculos.show')->name('vehiculos.show');
 
+    // Combustible
+    Route::livewire('combustible', 'pages::combustible.index')->name('combustible.index');
+    Route::livewire('combustible/{registroCombustible}', 'pages::combustible.show')->name('combustible.show');
+
     // Stubs — serán reemplazados en fases siguientes
-    Route::view('combustible', 'dashboard')->name('combustible.index');
     Route::view('alertas', 'dashboard')->name('alertas.index');
     Route::view('conductores', 'dashboard')->name('conductores.index');
     Route::livewire('admin/usuarios', 'pages::admin.usuarios')->name('admin.usuarios');

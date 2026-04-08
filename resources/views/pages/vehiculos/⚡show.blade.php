@@ -55,51 +55,124 @@ new #[Title('Detalle vehículo')] class extends Component {
             default => $this->vehiculo->tipo,
         };
     }
+
+    public function tipoIcon(): string
+    {
+        return match ($this->vehiculo->tipo) {
+            'moto' => 'bolt',
+            'bus' => 'building-storefront',
+            'vehiculo_pesado' => 'cube',
+            default => 'truck',
+        };
+    }
+
+    public function estadoHeaderColor(): string
+    {
+        return match ($this->vehiculo->estado) {
+            'operativo' => 'from-emerald-500/10 to-transparent border-emerald-500/20',
+            'parcialmente' => 'from-amber-500/10 to-transparent border-amber-500/20',
+            'fuera_de_servicio' => 'from-red-500/10 to-transparent border-red-500/20',
+            default => 'from-zinc-500/10 to-transparent border-zinc-500/20',
+        };
+    }
 }; ?>
 
-<section class="w-full">
+<section class="w-full max-w-5xl mx-auto">
 
-    {{-- Header --}}
-    <div class="flex items-start justify-between mb-6">
-        <div class="flex items-center gap-4">
-            <flux:button :href="route('vehiculos.index')" variant="ghost" icon="arrow-left" wire:navigate />
-            <div>
-                <div class="flex items-center gap-3 flex-wrap">
-                    <flux:heading size="xl" class="font-mono">{{ $vehiculo->placa }}</flux:heading>
-                    <flux:badge :color="$this->estadoBadgeColor()">{{ $this->estadoLabel() }}</flux:badge>
-                    <flux:badge color="zinc">{{ $this->tipoLabel() }}</flux:badge>
-                </div>
-                <flux:text class="mt-1">
-                    {{ $vehiculo->marca }} {{ $vehiculo->modelo }} · {{ $vehiculo->anio }}
-                    @if ($vehiculo->sucursal)
-                        · {{ $vehiculo->sucursal->nombre }}
-                    @endif
-                </flux:text>
-                @if ($vehiculo->propietario)
-                    <flux:text size="sm" class="text-zinc-500">{{ $vehiculo->propietario }}</flux:text>
-                @endif
-            </div>
-        </div>
+    {{-- Barra superior --}}
+    <div class="mb-4 flex items-center justify-between gap-3">
+        <flux:button
+            :href="route('vehiculos.index')"
+            variant="ghost" icon="arrow-left" size="sm"
+            wire:navigate
+        >
+            <span class="hidden sm:inline">{{ __('Vehículos') }}</span>
+        </flux:button>
 
         @if (auth()->user()->esAdmin())
-            <div class="flex gap-2">
+            {{-- Desktop: botones visibles --}}
+            <div class="hidden sm:flex gap-2">
                 <flux:button
                     :href="route('vehiculos.editar', $vehiculo)"
-                    variant="outline" icon="pencil"
+                    variant="outline" icon="pencil" size="sm"
                     wire:navigate
-                >
-                    {{ __('Editar') }}
-                </flux:button>
+                >{{ __('Editar') }}</flux:button>
                 <flux:button
                     wire:click="$set('showDeleteModal', true)"
-                    variant="danger" icon="trash"
-                >
-                    {{ __('Eliminar') }}
-                </flux:button>
+                    variant="danger" icon="trash" size="sm"
+                >{{ __('Eliminar') }}</flux:button>
+            </div>
+
+            {{-- Mobile: dropdown --}}
+            <div class="sm:hidden">
+                <flux:dropdown position="bottom" align="end">
+                    <flux:button variant="ghost" icon="ellipsis-vertical" size="sm" />
+                    <flux:menu>
+                        <flux:menu.item
+                            :href="route('vehiculos.editar', $vehiculo)"
+                            icon="pencil"
+                            wire:navigate
+                        >{{ __('Editar') }}</flux:menu.item>
+                        <flux:menu.separator />
+                        <flux:menu.item
+                            wire:click="$set('showDeleteModal', true)"
+                            icon="trash"
+                            variant="danger"
+                        >{{ __('Eliminar') }}</flux:menu.item>
+                    </flux:menu>
+                </flux:dropdown>
             </div>
         @endif
     </div>
 
+    {{-- Hero card --}}
+    <div class="mb-6 rounded-2xl border bg-gradient-to-br {{ $this->estadoHeaderColor() }} p-5 dark:bg-zinc-900">
+        <div class="flex items-start gap-4">
+            <div class="hidden sm:flex size-14 shrink-0 items-center justify-center rounded-xl bg-white/60 dark:bg-zinc-800/60 shadow-sm">
+                <flux:icon :name="$this->tipoIcon()" class="size-7 text-zinc-600 dark:text-zinc-300" />
+            </div>
+
+            <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h1 class="font-mono text-2xl font-bold tracking-wider">{{ $vehiculo->placa }}</h1>
+                    <flux:badge :color="$this->estadoBadgeColor()">{{ $this->estadoLabel() }}</flux:badge>
+                    <flux:badge color="zinc">{{ $this->tipoLabel() }}</flux:badge>
+                </div>
+
+                <p class="mt-1 text-sm font-medium text-zinc-600 dark:text-zinc-300">
+                    {{ $vehiculo->marca }} {{ $vehiculo->modelo }}
+                    @if ($vehiculo->anio) · {{ $vehiculo->anio }} @endif
+                    @if ($vehiculo->color) · {{ ucfirst($vehiculo->color) }} @endif
+                </p>
+
+                <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                    @if ($vehiculo->sucursal)
+                        <span class="flex items-center gap-1">
+                            <flux:icon name="building-office" class="size-3.5" />
+                            {{ $vehiculo->sucursal->nombre }}
+                        </span>
+                    @endif
+                    @if ($vehiculo->conductor_nombre)
+                        <span class="flex items-center gap-1">
+                            <flux:icon name="user" class="size-3.5" />
+                            {{ $vehiculo->conductor_nombre }}
+                            @if ($vehiculo->conductor_tel)
+                                · {{ $vehiculo->conductor_tel }}
+                            @endif
+                        </span>
+                    @endif
+                    @if ($vehiculo->km_actuales)
+                        <span class="flex items-center gap-1">
+                            <flux:icon name="map-pin" class="size-3.5" />
+                            {{ number_format($vehiculo->km_actuales) }} km
+                        </span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Alerta problema activo --}}
     @if ($vehiculo->problema_activo)
         <flux:callout color="amber" icon="exclamation-triangle" class="mb-6">
             <flux:callout.heading>{{ __('Problema activo') }}</flux:callout.heading>
@@ -109,147 +182,137 @@ new #[Title('Detalle vehículo')] class extends Component {
 
     {{-- Tabs --}}
     <div x-data="{ tab: 'info' }">
-        <div class="flex gap-1 border-b border-zinc-200 dark:border-zinc-700 mb-6">
-            @foreach ([
-                'info' => __('Información'),
-                'combustible' => __('Combustible'),
-                'documentos' => __('Documentos'),
-                'mantenimientos' => __('Mantenimientos'),
-                'fotos' => __('Fotos'),
-            ] as $key => $label)
-                <button
-                    type="button"
-                    x-on:click="tab = '{{ $key }}'"
-                    :class="tab === '{{ $key }}'
-                        ? 'border-b-2 border-accent text-accent font-medium'
-                        : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'"
-                    class="px-4 py-2 text-sm transition-colors"
-                >
-                    {{ $label }}
-                </button>
-            @endforeach
+        {{-- Tab bar: scrollable en mobile --}}
+        <div class="mb-6 overflow-x-auto border-b border-zinc-200 dark:border-zinc-700">
+            <div class="flex min-w-max gap-0">
+                @php
+                    $tabs = [
+                        'info' => ['label' => __('Información'), 'icon' => 'information-circle'],
+                        'documentos' => ['label' => __('Documentos'), 'icon' => 'document-text'],
+                        'combustible' => ['label' => __('Combustible'), 'icon' => 'fire'],
+                        'mantenimientos' => ['label' => __('Mantenimientos'), 'icon' => 'wrench-screwdriver'],
+                        'fotos' => ['label' => __('Fotos'), 'icon' => 'photo'],
+                    ];
+                @endphp
+                @foreach ($tabs as $key => $tabData)
+                    <button
+                        type="button"
+                        x-on:click="tab = '{{ $key }}'"
+                        :class="tab === '{{ $key }}'
+                            ? 'border-b-2 border-accent text-accent font-semibold'
+                            : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'"
+                        class="flex items-center gap-1.5 whitespace-nowrap px-4 py-2.5 text-sm transition-colors"
+                    >
+                        <flux:icon name="{{ $tabData['icon'] }}" class="size-4" />
+                        {{ $tabData['label'] }}
+                    </button>
+                @endforeach
+            </div>
         </div>
 
         {{-- Tab: Información --}}
         <div x-show="tab === 'info'" x-cloak>
-            <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
                 {{-- Identificación --}}
-                <div class="space-y-3">
-                    <flux:heading>{{ __('Identificación') }}</flux:heading>
-                    <dl class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('Placa') }}</dt>
-                            <dd class="font-mono font-medium">{{ $vehiculo->placa }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('Tipo') }}</dt>
-                            <dd>{{ $this->tipoLabel() }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('Marca / Modelo') }}</dt>
-                            <dd>{{ $vehiculo->marca }} {{ $vehiculo->modelo }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('Año') }}</dt>
-                            <dd>{{ $vehiculo->anio }}</dd>
-                        </div>
-                        @if ($vehiculo->color)
-                            <div class="flex justify-between">
-                                <dt class="text-zinc-500">{{ __('Color') }}</dt>
-                                <dd>{{ $vehiculo->color }}</dd>
+                <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                    <h3 class="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                        <flux:icon name="identification" class="size-4 text-accent" />
+                        {{ __('Identificación') }}
+                    </h3>
+                    <dl class="space-y-2.5">
+                        @foreach ([
+                            __('Placa') => ['value' => $vehiculo->placa, 'mono' => true],
+                            __('Tipo') => ['value' => $this->tipoLabel()],
+                            __('Marca / Modelo') => ['value' => $vehiculo->marca.' '.$vehiculo->modelo],
+                            __('Año') => ['value' => $vehiculo->anio],
+                            __('Color') => ['value' => $vehiculo->color ? ucfirst($vehiculo->color) : null],
+                            __('Sucursal') => ['value' => $vehiculo->sucursal?->nombre],
+                        ] as $label => $item)
+                            @if ($item['value'] ?? null)
+                                <div class="flex items-baseline justify-between gap-2 text-sm">
+                                    <dt class="text-zinc-500 shrink-0">{{ $label }}</dt>
+                                    <dd class="{{ ($item['mono'] ?? false) ? 'font-mono font-semibold' : 'text-right' }}">{{ $item['value'] }}</dd>
+                                </div>
+                            @endif
+                        @endforeach
+                    </dl>
+                </div>
+
+                {{-- Tarjeta de propiedad --}}
+                <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                    <h3 class="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                        <flux:icon name="document-check" class="size-4 text-accent" />
+                        {{ __('Tarjeta de propiedad') }}
+                    </h3>
+                    <dl class="space-y-2.5">
+                        @foreach ([
+                            __('N° Motor') => ['value' => $vehiculo->num_motor, 'mono' => true],
+                            __('N° Chasis') => ['value' => $vehiculo->num_chasis, 'mono' => true],
+                            __('VIN') => ['value' => $vehiculo->vin, 'mono' => true],
+                            __('Propietario') => ['value' => $vehiculo->propietario],
+                            __('RUC') => ['value' => $vehiculo->ruc_propietario, 'mono' => true],
+                        ] as $label => $item)
+                            <div class="flex items-baseline justify-between gap-2 text-sm">
+                                <dt class="text-zinc-500 shrink-0">{{ $label }}</dt>
+                                <dd class="{{ ($item['mono'] ?? false) ? 'font-mono text-right' : 'text-right' }}">
+                                    {{ $item['value'] ?? '—' }}
+                                </dd>
                             </div>
-                        @endif
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('Sucursal') }}</dt>
-                            <dd>{{ $vehiculo->sucursal?->nombre ?? '—' }}</dd>
-                        </div>
+                        @endforeach
                     </dl>
                 </div>
 
-                {{-- SUNARP --}}
-                <div class="space-y-3">
-                    <flux:heading>{{ __('Tarjeta de propiedad') }}</flux:heading>
-                    <dl class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('N° Motor') }}</dt>
-                            <dd class="font-mono">{{ $vehiculo->num_motor ?? '—' }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('N° Chasis') }}</dt>
-                            <dd class="font-mono">{{ $vehiculo->num_chasis ?? '—' }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('VIN') }}</dt>
-                            <dd class="font-mono">{{ $vehiculo->vin ?? '—' }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('Propietario') }}</dt>
-                            <dd>{{ $vehiculo->propietario ?? '—' }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('RUC') }}</dt>
-                            <dd class="font-mono">{{ $vehiculo->ruc_propietario ?? '—' }}</dd>
-                        </div>
+                {{-- Datos técnicos --}}
+                <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                    <h3 class="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                        <flux:icon name="cog-6-tooth" class="size-4 text-accent" />
+                        {{ __('Datos técnicos') }}
+                    </h3>
+                    <dl class="space-y-2.5">
+                        @foreach ([
+                            __('Combustible') => ucfirst($vehiculo->combustible ?? '—'),
+                            __('Transmisión') => $vehiculo->transmision ? ucfirst($vehiculo->transmision) : '—',
+                            __('Tracción') => $vehiculo->traccion ?? '—',
+                            __('Km actuales') => $vehiculo->km_actuales ? number_format($vehiculo->km_actuales).' km' : '—',
+                            __('Cap. de carga') => $vehiculo->capacidad_carga ?? '—',
+                        ] as $label => $value)
+                            <div class="flex items-baseline justify-between gap-2 text-sm">
+                                <dt class="text-zinc-500 shrink-0">{{ $label }}</dt>
+                                <dd class="text-right">{{ $value }}</dd>
+                            </div>
+                        @endforeach
                     </dl>
                 </div>
 
-                {{-- Técnico --}}
-                <div class="space-y-3">
-                    <flux:heading>{{ __('Datos técnicos') }}</flux:heading>
-                    <dl class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('Combustible') }}</dt>
-                            <dd>{{ ucfirst($vehiculo->combustible) }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('Transmisión') }}</dt>
-                            <dd>{{ $vehiculo->transmision ? ucfirst($vehiculo->transmision) : '—' }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('Tracción') }}</dt>
-                            <dd>{{ $vehiculo->traccion ?? '—' }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('Km actuales') }}</dt>
-                            <dd>{{ $vehiculo->km_actuales ? number_format($vehiculo->km_actuales) . ' km' : '—' }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('Cap. de carga') }}</dt>
-                            <dd>{{ $vehiculo->capacidad_carga ?? '—' }}</dd>
-                        </div>
-                    </dl>
-                </div>
-
-                {{-- Conductor + Admin --}}
-                <div class="space-y-3">
-                    <flux:heading>{{ __('Conductor y administración') }}</flux:heading>
-                    <dl class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('Conductor') }}</dt>
-                            <dd>{{ $vehiculo->conductor_nombre ?? '—' }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('Teléfono') }}</dt>
-                            <dd>{{ $vehiculo->conductor_tel ?? '—' }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('Adquisición') }}</dt>
-                            <dd>{{ $vehiculo->fecha_adquisicion?->format('d/m/Y') ?? '—' }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-zinc-500">{{ __('GPS ID') }}</dt>
-                            <dd class="font-mono">{{ $vehiculo->gps_id ?? '—' }}</dd>
-                        </div>
+                {{-- Conductor y administración --}}
+                <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                    <h3 class="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                        <flux:icon name="user-circle" class="size-4 text-accent" />
+                        {{ __('Conductor y administración') }}
+                    </h3>
+                    <dl class="space-y-2.5">
+                        @foreach ([
+                            __('Conductor') => $vehiculo->conductor_nombre ?? '—',
+                            __('Teléfono') => $vehiculo->conductor_tel ?? '—',
+                            __('Adquisición') => $vehiculo->fecha_adquisicion?->format('d/m/Y') ?? '—',
+                            __('GPS ID') => $vehiculo->gps_id ?? '—',
+                        ] as $label => $value)
+                            <div class="flex items-baseline justify-between gap-2 text-sm">
+                                <dt class="text-zinc-500 shrink-0">{{ $label }}</dt>
+                                <dd class="text-right">{{ $value }}</dd>
+                            </div>
+                        @endforeach
                     </dl>
 
                     @if ($vehiculo->observaciones)
-                        <div class="pt-2">
-                            <flux:text size="sm" class="text-zinc-500 mb-1">{{ __('Observaciones') }}</flux:text>
-                            <flux:text size="sm">{{ $vehiculo->observaciones }}</flux:text>
+                        <div class="mt-3 rounded-lg bg-zinc-50 dark:bg-zinc-800 p-3">
+                            <p class="text-xs text-zinc-500 mb-1">{{ __('Observaciones') }}</p>
+                            <p class="text-sm">{{ $vehiculo->observaciones }}</p>
                         </div>
                     @endif
                 </div>
+
             </div>
         </div>
 
@@ -261,7 +324,8 @@ new #[Title('Detalle vehículo')] class extends Component {
         {{-- Tabs placeholders FASE 2 --}}
         @foreach (['combustible', 'mantenimientos', 'fotos'] as $tabKey)
             <div x-show="tab === '{{ $tabKey }}'" x-cloak>
-                <div class="py-16 text-center">
+                <div class="flex flex-col items-center justify-center py-20 text-center">
+                    <flux:icon name="wrench-screwdriver" class="mb-3 size-10 text-zinc-300 dark:text-zinc-600" />
                     <flux:text class="text-zinc-400">{{ __('Disponible próximamente.') }}</flux:text>
                 </div>
             </div>

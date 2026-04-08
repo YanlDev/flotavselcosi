@@ -93,62 +93,77 @@ new #[Title('Sucursales')] class extends Component {
 }; ?>
 
 <section class="w-full">
-    <div class="flex items-center justify-between mb-6">
+    <div class="mb-6 flex items-center justify-between gap-4">
         <div>
             <flux:heading size="xl">{{ __('Sucursales') }}</flux:heading>
-            <flux:text>{{ __('Gestiona las sucursales de la empresa.') }}</flux:text>
+            <flux:text class="hidden sm:block">{{ __('Gestiona las sucursales de la empresa.') }}</flux:text>
         </div>
         <flux:button wire:click="openCreate" variant="primary" icon="plus">
-            {{ __('Nueva sucursal') }}
+            <span class="hidden sm:inline">{{ __('Nueva sucursal') }}</span>
+            <span class="sm:hidden">{{ __('Nueva') }}</span>
         </flux:button>
     </div>
 
-    <flux:table>
-        <flux:table.columns>
-            <flux:table.column>{{ __('Nombre') }}</flux:table.column>
-            <flux:table.column>{{ __('Ciudad') }}</flux:table.column>
-            <flux:table.column>{{ __('Región') }}</flux:table.column>
-            <flux:table.column>{{ __('Estado') }}</flux:table.column>
-            <flux:table.column></flux:table.column>
-        </flux:table.columns>
+    {{-- Tabla desktop --}}
+    <div class="hidden sm:block">
+        <flux:table>
+            <flux:table.columns>
+                <flux:table.column>{{ __('Nombre') }}</flux:table.column>
+                <flux:table.column>{{ __('Ciudad') }}</flux:table.column>
+                <flux:table.column>{{ __('Región') }}</flux:table.column>
+                <flux:table.column>{{ __('Estado') }}</flux:table.column>
+                <flux:table.column></flux:table.column>
+            </flux:table.columns>
 
-        <flux:table.rows>
-            @foreach ($this->sucursales as $sucursal)
-                <flux:table.row :key="$sucursal->id">
-                    <flux:table.cell>
-                        <flux:heading>{{ $sucursal->nombre }}</flux:heading>
-                    </flux:table.cell>
-                    <flux:table.cell>{{ $sucursal->ciudad }}</flux:table.cell>
-                    <flux:table.cell>{{ $sucursal->region ?? '—' }}</flux:table.cell>
-                    <flux:table.cell>
-                        @if ($sucursal->activa)
-                            <flux:badge color="green">{{ __('Activa') }}</flux:badge>
-                        @else
-                            <flux:badge color="zinc">{{ __('Inactiva') }}</flux:badge>
-                        @endif
-                    </flux:table.cell>
-                    <flux:table.cell>
-                        <div class="flex justify-end gap-2">
-                            <flux:button
-                                wire:click="edit({{ $sucursal->id }})"
-                                size="sm"
-                                variant="subtle"
-                                icon="pencil"
-                                inset="top bottom"
-                            />
-                            <flux:button
-                                wire:click="confirmDelete({{ $sucursal->id }})"
-                                size="sm"
-                                variant="subtle"
-                                icon="trash"
-                                inset="top bottom"
-                            />
+            <flux:table.rows>
+                @foreach ($this->sucursales as $sucursal)
+                    <flux:table.row :key="$sucursal->id">
+                        <flux:table.cell>
+                            <span class="font-semibold text-sm">{{ $sucursal->nombre }}</span>
+                        </flux:table.cell>
+                        <flux:table.cell class="text-sm">{{ $sucursal->ciudad }}</flux:table.cell>
+                        <flux:table.cell class="text-sm">{{ $sucursal->region ?? '—' }}</flux:table.cell>
+                        <flux:table.cell>
+                            <flux:badge :color="$sucursal->activa ? 'green' : 'zinc'" size="sm">
+                                {{ $sucursal->activa ? __('Activa') : __('Inactiva') }}
+                            </flux:badge>
+                        </flux:table.cell>
+                        <flux:table.cell>
+                            <div class="flex justify-end gap-1">
+                                <flux:button wire:click="edit({{ $sucursal->id }})" size="sm" variant="subtle" icon="pencil" inset="top bottom" />
+                                <flux:button wire:click="confirmDelete({{ $sucursal->id }})" size="sm" variant="subtle" icon="trash" inset="top bottom" />
+                            </div>
+                        </flux:table.cell>
+                    </flux:table.row>
+                @endforeach
+            </flux:table.rows>
+        </flux:table>
+    </div>
+
+    {{-- Cards mobile --}}
+    <div class="sm:hidden space-y-3">
+        @foreach ($this->sucursales as $sucursal)
+            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-4">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p class="font-semibold text-sm">{{ $sucursal->nombre }}</p>
+                        <p class="mt-0.5 text-xs text-zinc-500">
+                            {{ $sucursal->ciudad }}{{ $sucursal->region ? ' · '.$sucursal->region : '' }}
+                        </p>
+                        <div class="mt-2">
+                            <flux:badge :color="$sucursal->activa ? 'green' : 'zinc'" size="sm">
+                                {{ $sucursal->activa ? __('Activa') : __('Inactiva') }}
+                            </flux:badge>
                         </div>
-                    </flux:table.cell>
-                </flux:table.row>
-            @endforeach
-        </flux:table.rows>
-    </flux:table>
+                    </div>
+                    <div class="flex shrink-0 gap-1">
+                        <flux:button wire:click="edit({{ $sucursal->id }})" size="sm" variant="subtle" icon="pencil" inset="top bottom" />
+                        <flux:button wire:click="confirmDelete({{ $sucursal->id }})" size="sm" variant="subtle" icon="trash" inset="top bottom" />
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
 
     @if ($this->sucursales->isEmpty())
         <div class="py-12 text-center">

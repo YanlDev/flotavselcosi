@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RegistroCombustible extends Model
 {
+    protected $table = 'registros_combustible';
+
     protected $fillable = [
         'vehiculo_id', 'sucursal_id', 'enviado_por', 'foto_factura_key', 'foto_odometro_key',
         'observaciones_envio', 'estado', 'revisado_por', 'revisado_en', 'fecha_carga',

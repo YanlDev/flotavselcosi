@@ -100,6 +100,13 @@ new class extends Component {
         $this->dispatch('open-url', url: $url);
     }
 
+    public function previsualizarDocumento(int $id, WasabiService $wasabi): void
+    {
+        $doc = DocumentoVehicular::where('vehiculo_id', $this->vehiculo->id)->findOrFail($id);
+        $url = $wasabi->temporaryUrl($doc->archivo_key);
+        $this->dispatch('abrir-preview', url: $url, mime: $doc->mime_type, nombre: $doc->nombre);
+    }
+
     public function confirmDelete(int $id): void
     {
         abort_unless(auth()->user()->esAdmin(), 403);
@@ -223,10 +230,14 @@ new class extends Component {
 
                                 <div class="flex gap-1">
                                     <flux:button
+                                        wire:click="previsualizarDocumento({{ $doc->id }})"
+                                        size="sm" variant="subtle" icon="eye"
+                                        inset="top bottom"
+                                    />
+                                    <flux:button
                                         wire:click="descargar({{ $doc->id }})"
                                         size="sm" variant="subtle" icon="arrow-down-tray"
                                         inset="top bottom"
-                                        wire:loading.attr="disabled"
                                     />
 
                                     @if (auth()->user()->esAdmin())
@@ -328,4 +339,65 @@ new class extends Component {
             </div>
         </div>
     </flux:modal>
+
+    {{-- Modal preview (Alpine.js) --}}
+    <div
+        x-data="{ show: false, url: '', mime: '', nombre: '' }"
+        x-on:abrir-preview.window="show = true; url = $event.detail.url; mime = $event.detail.mime; nombre = $event.detail.nombre"
+        x-show="show"
+        x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="display: none;"
+    >
+    {{-- Backdrop --}}
+    <div
+        class="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        x-on:click="show = false"
+    ></div>
+
+    {{-- Contenido --}}
+    <div class="relative z-10 flex max-h-[90vh] w-full max-w-4xl flex-col rounded-2xl bg-white shadow-2xl dark:bg-zinc-900">
+        {{-- Header --}}
+        <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
+            <p class="truncate text-sm font-medium" x-text="nombre"></p>
+            <div class="flex gap-2 ml-2 shrink-0">
+                <a
+                    :href="url"
+                    target="_blank"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                >
+                    <flux:icon name="arrow-down-tray" class="size-3.5" />
+                    {{ __('Descargar') }}
+                </a>
+                <button
+                    type="button"
+                    x-on:click="show = false"
+                    class="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
+                    <flux:icon name="x-mark" class="size-5" />
+                </button>
+            </div>
+        </div>
+
+        {{-- Visor --}}
+        <div class="flex-1 overflow-auto p-2">
+            {{-- Imagen --}}
+            <template x-if="mime.startsWith('image/')">
+                <img
+                    :src="url"
+                    :alt="nombre"
+                    class="mx-auto max-h-[75vh] rounded-lg object-contain"
+                />
+            </template>
+
+            {{-- PDF --}}
+            <template x-if="mime === 'application/pdf'">
+                <iframe
+                    :src="url"
+                    class="h-[75vh] w-full rounded-lg border-0"
+                    :title="nombre"
+                ></iframe>
+            </template>
+        </div>
+    </div>
 </div>

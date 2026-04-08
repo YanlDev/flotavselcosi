@@ -94,28 +94,31 @@ new #[Title('Vehículos')] class extends Component {
             'minivan' => 'Minivan',
             'furgon' => 'Furgón',
             'bus' => 'Bus',
-            'vehiculo_pesado' => 'Vehículo pesado',
+            'vehiculo_pesado' => 'Veh. pesado',
             default => $tipo,
         };
     }
 }; ?>
 
 <section class="w-full">
-    <div class="flex items-center justify-between mb-6">
+
+    {{-- Encabezado --}}
+    <div class="mb-6 flex items-center justify-between gap-4">
         <div>
             <flux:heading size="xl">{{ __('Vehículos') }}</flux:heading>
-            <flux:text>{{ __('Gestiona la flota de vehículos.') }}</flux:text>
+            <flux:text class="hidden sm:block">{{ __('Gestiona la flota de vehículos.') }}</flux:text>
         </div>
         @if (auth()->user()->esAdmin())
             <flux:button :href="route('vehiculos.crear')" variant="primary" icon="plus" wire:navigate>
-                {{ __('Nuevo vehículo') }}
+                <span class="hidden sm:inline">{{ __('Nuevo vehículo') }}</span>
+                <span class="sm:hidden">{{ __('Nuevo') }}</span>
             </flux:button>
         @endif
     </div>
 
     {{-- Filtros --}}
-    <div class="flex flex-wrap gap-3 mb-4">
-        <div class="flex-1 min-w-48">
+    <div class="mb-4 space-y-2 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-3">
+        <div class="w-full sm:flex-1 sm:min-w-48">
             <flux:input
                 wire:model.live.debounce.300ms="search"
                 :placeholder="__('Buscar placa, marca, modelo...')"
@@ -124,27 +127,29 @@ new #[Title('Vehículos')] class extends Component {
             />
         </div>
 
-        <flux:select wire:model.live="filterEstado" class="w-40">
-            <flux:select.option value="">{{ __('Todos los estados') }}</flux:select.option>
-            <flux:select.option value="operativo">{{ __('Operativo') }}</flux:select.option>
-            <flux:select.option value="parcialmente">{{ __('Parcial') }}</flux:select.option>
-            <flux:select.option value="fuera_de_servicio">{{ __('Fuera de servicio') }}</flux:select.option>
-        </flux:select>
+        <div class="grid grid-cols-2 gap-2 sm:contents">
+            <flux:select wire:model.live="filterEstado" class="sm:w-40">
+                <flux:select.option value="">{{ __('Estado') }}</flux:select.option>
+                <flux:select.option value="operativo">{{ __('Operativo') }}</flux:select.option>
+                <flux:select.option value="parcialmente">{{ __('Parcial') }}</flux:select.option>
+                <flux:select.option value="fuera_de_servicio">{{ __('Fuera de servicio') }}</flux:select.option>
+            </flux:select>
 
-        <flux:select wire:model.live="filterTipo" class="w-44">
-            <flux:select.option value="">{{ __('Todos los tipos') }}</flux:select.option>
-            <flux:select.option value="moto">{{ __('Moto') }}</flux:select.option>
-            <flux:select.option value="auto">{{ __('Auto') }}</flux:select.option>
-            <flux:select.option value="camioneta">{{ __('Camioneta') }}</flux:select.option>
-            <flux:select.option value="minivan">{{ __('Minivan') }}</flux:select.option>
-            <flux:select.option value="furgon">{{ __('Furgón') }}</flux:select.option>
-            <flux:select.option value="bus">{{ __('Bus') }}</flux:select.option>
-            <flux:select.option value="vehiculo_pesado">{{ __('Veh. pesado') }}</flux:select.option>
-        </flux:select>
+            <flux:select wire:model.live="filterTipo" class="sm:w-44">
+                <flux:select.option value="">{{ __('Tipo') }}</flux:select.option>
+                <flux:select.option value="moto">{{ __('Moto') }}</flux:select.option>
+                <flux:select.option value="auto">{{ __('Auto') }}</flux:select.option>
+                <flux:select.option value="camioneta">{{ __('Camioneta') }}</flux:select.option>
+                <flux:select.option value="minivan">{{ __('Minivan') }}</flux:select.option>
+                <flux:select.option value="furgon">{{ __('Furgón') }}</flux:select.option>
+                <flux:select.option value="bus">{{ __('Bus') }}</flux:select.option>
+                <flux:select.option value="vehiculo_pesado">{{ __('Veh. pesado') }}</flux:select.option>
+            </flux:select>
+        </div>
 
         @if (auth()->user()->esAdmin())
-            <flux:select wire:model.live="filterSucursal" class="w-44">
-                <flux:select.option value="">{{ __('Todas las sucursales') }}</flux:select.option>
+            <flux:select wire:model.live="filterSucursal" class="w-full sm:w-44">
+                <flux:select.option value="">{{ __('Sucursal') }}</flux:select.option>
                 @foreach ($this->sucursales as $sucursal)
                     <flux:select.option :value="$sucursal->id">{{ $sucursal->nombre }}</flux:select.option>
                 @endforeach
@@ -152,74 +157,138 @@ new #[Title('Vehículos')] class extends Component {
         @endif
     </div>
 
-    <flux:table :paginate="$this->vehiculos">
-        <flux:table.columns>
-            <flux:table.column>{{ __('Vehículo') }}</flux:table.column>
-            <flux:table.column>{{ __('Tipo') }}</flux:table.column>
-            @if (auth()->user()->esAdmin())
-                <flux:table.column>{{ __('Sucursal') }}</flux:table.column>
-            @endif
-            <flux:table.column>{{ __('Conductor') }}</flux:table.column>
-            <flux:table.column>{{ __('Estado') }}</flux:table.column>
-            <flux:table.column></flux:table.column>
-        </flux:table.columns>
+    {{-- Tabla desktop --}}
+    <div class="hidden sm:block overflow-x-auto">
+        <flux:table :paginate="$this->vehiculos">
+            <flux:table.columns>
+                <flux:table.column>{{ __('Vehículo') }}</flux:table.column>
+                <flux:table.column>{{ __('Tipo') }}</flux:table.column>
+                @if (auth()->user()->esAdmin())
+                    <flux:table.column>{{ __('Sucursal') }}</flux:table.column>
+                @endif
+                <flux:table.column>{{ __('Conductor') }}</flux:table.column>
+                <flux:table.column>{{ __('Estado') }}</flux:table.column>
+                <flux:table.column></flux:table.column>
+            </flux:table.columns>
 
-        <flux:table.rows>
-            @foreach ($this->vehiculos as $vehiculo)
-                <flux:table.row :key="$vehiculo->id">
-                    <flux:table.cell>
-                        <div>
-                            <flux:heading class="font-mono">{{ $vehiculo->placa }}</flux:heading>
-                            <flux:text size="sm">{{ $vehiculo->marca }} {{ $vehiculo->modelo }} · {{ $vehiculo->anio }}</flux:text>
-                        </div>
-                    </flux:table.cell>
+            <flux:table.rows>
+                @foreach ($this->vehiculos as $vehiculo)
+                    <flux:table.row :key="$vehiculo->id">
+                        <flux:table.cell>
+                            <div>
+                                <p class="font-mono font-semibold text-sm">{{ $vehiculo->placa }}</p>
+                                <p class="text-xs text-zinc-500">{{ $vehiculo->marca }} {{ $vehiculo->modelo }} · {{ $vehiculo->anio }}</p>
+                            </div>
+                        </flux:table.cell>
 
-                    <flux:table.cell>
-                        <flux:badge color="zinc">{{ $this->tipoLabel($vehiculo->tipo) }}</flux:badge>
-                    </flux:table.cell>
+                        <flux:table.cell>
+                            <flux:badge color="zinc" size="sm">{{ $this->tipoLabel($vehiculo->tipo) }}</flux:badge>
+                        </flux:table.cell>
 
-                    @if (auth()->user()->esAdmin())
-                        <flux:table.cell>{{ $vehiculo->sucursal?->nombre ?? '—' }}</flux:table.cell>
-                    @endif
+                        @if (auth()->user()->esAdmin())
+                            <flux:table.cell class="text-sm">{{ $vehiculo->sucursal?->nombre ?? '—' }}</flux:table.cell>
+                        @endif
 
-                    <flux:table.cell>
-                        {{ $vehiculo->conductor_nombre ?? '—' }}
-                    </flux:table.cell>
+                        <flux:table.cell class="text-sm">{{ $vehiculo->conductor_nombre ?? '—' }}</flux:table.cell>
 
-                    <flux:table.cell>
-                        <flux:badge :color="$this->estadoBadgeColor($vehiculo->estado)">
-                            {{ $this->estadoLabel($vehiculo->estado) }}
-                        </flux:badge>
-                    </flux:table.cell>
+                        <flux:table.cell>
+                            <flux:badge :color="$this->estadoBadgeColor($vehiculo->estado)" size="sm">
+                                {{ $this->estadoLabel($vehiculo->estado) }}
+                            </flux:badge>
+                        </flux:table.cell>
 
-                    <flux:table.cell>
-                        <div class="flex justify-end gap-1">
-                            <flux:button
-                                :href="route('vehiculos.show', $vehiculo)"
-                                size="sm" variant="subtle" icon="eye"
-                                inset="top bottom"
-                                wire:navigate
-                            />
-                            @if (auth()->user()->esAdmin())
+                        <flux:table.cell>
+                            <div class="flex justify-end gap-1">
                                 <flux:button
-                                    :href="route('vehiculos.editar', $vehiculo)"
-                                    size="sm" variant="subtle" icon="pencil"
+                                    :href="route('vehiculos.show', $vehiculo)"
+                                    size="sm" variant="subtle" icon="eye"
                                     inset="top bottom"
                                     wire:navigate
                                 />
-                                <flux:button
-                                    wire:click="confirmDelete({{ $vehiculo->id }})"
-                                    size="sm" variant="subtle" icon="trash"
-                                    inset="top bottom"
-                                />
-                            @endif
-                        </div>
-                    </flux:table.cell>
-                </flux:table.row>
-            @endforeach
-        </flux:table.rows>
-    </flux:table>
+                                @if (auth()->user()->esAdmin())
+                                    <flux:button
+                                        :href="route('vehiculos.editar', $vehiculo)"
+                                        size="sm" variant="subtle" icon="pencil"
+                                        inset="top bottom"
+                                        wire:navigate
+                                    />
+                                    <flux:button
+                                        wire:click="confirmDelete({{ $vehiculo->id }})"
+                                        size="sm" variant="subtle" icon="trash"
+                                        inset="top bottom"
+                                    />
+                                @endif
+                            </div>
+                        </flux:table.cell>
+                    </flux:table.row>
+                @endforeach
+            </flux:table.rows>
+        </flux:table>
+    </div>
 
+    {{-- Cards mobile --}}
+    <div class="sm:hidden space-y-3">
+        @foreach ($this->vehiculos as $vehiculo)
+            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-4">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-mono font-bold text-base">{{ $vehiculo->placa }}</span>
+                            <flux:badge :color="$this->estadoBadgeColor($vehiculo->estado)" size="sm">
+                                {{ $this->estadoLabel($vehiculo->estado) }}
+                            </flux:badge>
+                        </div>
+                        <p class="mt-0.5 text-sm text-zinc-500">
+                            {{ $vehiculo->marca }} {{ $vehiculo->modelo }} · {{ $vehiculo->anio }}
+                        </p>
+                        @if ($vehiculo->conductor_nombre)
+                            <p class="mt-0.5 text-xs text-zinc-400">
+                                <flux:icon name="user" class="inline size-3 mr-0.5" />
+                                {{ $vehiculo->conductor_nombre }}
+                            </p>
+                        @endif
+                        @if (auth()->user()->esAdmin() && $vehiculo->sucursal)
+                            <p class="mt-0.5 text-xs text-zinc-400">
+                                <flux:icon name="building-office" class="inline size-3 mr-0.5" />
+                                {{ $vehiculo->sucursal->nombre }}
+                            </p>
+                        @endif
+                    </div>
+
+                    <div class="flex shrink-0 gap-1">
+                        <flux:button
+                            :href="route('vehiculos.show', $vehiculo)"
+                            size="sm" variant="subtle" icon="eye"
+                            inset="top bottom"
+                            wire:navigate
+                        />
+                        @if (auth()->user()->esAdmin())
+                            <flux:button
+                                :href="route('vehiculos.editar', $vehiculo)"
+                                size="sm" variant="subtle" icon="pencil"
+                                inset="top bottom"
+                                wire:navigate
+                            />
+                            <flux:button
+                                wire:click="confirmDelete({{ $vehiculo->id }})"
+                                size="sm" variant="subtle" icon="trash"
+                                inset="top bottom"
+                            />
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @endforeach
+
+        {{-- Paginación mobile --}}
+        @if ($this->vehiculos->hasPages())
+            <div class="pt-2">
+                {{ $this->vehiculos->links() }}
+            </div>
+        @endif
+    </div>
+
+    {{-- Vacío --}}
     @if ($this->vehiculos->isEmpty())
         <div class="py-16 text-center">
             <flux:icon name="truck" class="mx-auto mb-3 size-10 text-zinc-300 dark:text-zinc-600" />
@@ -227,14 +296,12 @@ new #[Title('Vehículos')] class extends Component {
         </div>
     @endif
 
-    {{-- Modal confirmar eliminación --}}
+    {{-- Modal eliminar --}}
     <flux:modal wire:model.self="showDeleteModal" class="md:w-80">
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg">{{ __('Eliminar vehículo') }}</flux:heading>
-                <flux:text class="mt-2">
-                    {{ __('¿Estás seguro? Esta acción no se puede deshacer.') }}
-                </flux:text>
+                <flux:text class="mt-2">{{ __('¿Estás seguro? Esta acción no se puede deshacer.') }}</flux:text>
             </div>
             <div class="flex justify-end gap-2">
                 <flux:modal.close>
@@ -246,4 +313,5 @@ new #[Title('Vehículos')] class extends Component {
             </div>
         </div>
     </flux:modal>
+
 </section>

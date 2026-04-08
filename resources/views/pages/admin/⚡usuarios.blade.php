@@ -107,80 +107,92 @@ new #[Title('Usuarios')] class extends Component {
 }; ?>
 
 <section class="w-full">
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <flux:heading size="xl">{{ __('Usuarios') }}</flux:heading>
-            <flux:text>{{ __('Gestiona los roles, sucursales y acceso de los usuarios.') }}</flux:text>
-        </div>
+    <div class="mb-6">
+        <flux:heading size="xl">{{ __('Usuarios') }}</flux:heading>
+        <flux:text class="hidden sm:block">{{ __('Gestiona los roles, sucursales y acceso de los usuarios.') }}</flux:text>
     </div>
 
-    <flux:table>
-        <flux:table.columns>
-            <flux:table.column>{{ __('Usuario') }}</flux:table.column>
-            <flux:table.column>{{ __('Rol') }}</flux:table.column>
-            <flux:table.column>{{ __('Sucursal') }}</flux:table.column>
-            <flux:table.column>{{ __('Estado') }}</flux:table.column>
-            <flux:table.column></flux:table.column>
-        </flux:table.columns>
+    {{-- Tabla desktop --}}
+    <div class="hidden sm:block">
+        <flux:table>
+            <flux:table.columns>
+                <flux:table.column>{{ __('Usuario') }}</flux:table.column>
+                <flux:table.column>{{ __('Rol') }}</flux:table.column>
+                <flux:table.column>{{ __('Sucursal') }}</flux:table.column>
+                <flux:table.column>{{ __('Estado') }}</flux:table.column>
+                <flux:table.column></flux:table.column>
+            </flux:table.columns>
 
-        <flux:table.rows>
-            @foreach ($this->usuarios as $usuario)
-                @php $rolNombre = $usuario->roles->first()?->name ?? '' @endphp
-                <flux:table.row :key="$usuario->id">
-                    <flux:table.cell>
-                        <div class="flex items-center gap-3">
-                            <flux:avatar :name="$usuario->name" size="sm" />
-                            <div>
-                                <flux:heading>{{ $usuario->name }}</flux:heading>
-                                <flux:text size="sm">{{ $usuario->email }}</flux:text>
+            <flux:table.rows>
+                @foreach ($this->usuarios as $usuario)
+                    @php $rolNombre = $usuario->roles->first()?->name ?? '' @endphp
+                    <flux:table.row :key="$usuario->id">
+                        <flux:table.cell>
+                            <div class="flex items-center gap-3">
+                                <flux:avatar :name="$usuario->name" size="sm" />
+                                <div>
+                                    <p class="text-sm font-semibold">{{ $usuario->name }}</p>
+                                    <p class="text-xs text-zinc-500">{{ $usuario->email }}</p>
+                                </div>
+                            </div>
+                        </flux:table.cell>
+                        <flux:table.cell>
+                            @if ($rolNombre)
+                                <flux:badge :color="$this->rolBadgeColor($rolNombre)" size="sm">{{ $this->rolLabel($rolNombre) }}</flux:badge>
+                            @else
+                                <span class="text-zinc-400">—</span>
+                            @endif
+                        </flux:table.cell>
+                        <flux:table.cell class="text-sm">{{ $usuario->sucursal?->nombre ?? '—' }}</flux:table.cell>
+                        <flux:table.cell>
+                            <flux:badge :color="$usuario->activo ? 'green' : 'zinc'" size="sm">
+                                {{ $usuario->activo ? __('Activo') : __('Inactivo') }}
+                            </flux:badge>
+                        </flux:table.cell>
+                        <flux:table.cell>
+                            <div class="flex justify-end gap-1">
+                                <flux:button wire:click="toggleActivo({{ $usuario->id }})" size="sm" variant="subtle" :icon="$usuario->activo ? 'lock-open' : 'lock-closed'" inset="top bottom" />
+                                <flux:button wire:click="edit({{ $usuario->id }})" size="sm" variant="subtle" icon="pencil" inset="top bottom" />
+                            </div>
+                        </flux:table.cell>
+                    </flux:table.row>
+                @endforeach
+            </flux:table.rows>
+        </flux:table>
+    </div>
+
+    {{-- Cards mobile --}}
+    <div class="sm:hidden space-y-3">
+        @foreach ($this->usuarios as $usuario)
+            @php $rolNombre = $usuario->roles->first()?->name ?? '' @endphp
+            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-4">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <flux:avatar :name="$usuario->name" size="sm" class="shrink-0" />
+                        <div class="min-w-0">
+                            <p class="truncate font-semibold text-sm">{{ $usuario->name }}</p>
+                            <p class="truncate text-xs text-zinc-500">{{ $usuario->email }}</p>
+                            <div class="mt-1.5 flex flex-wrap gap-1.5">
+                                @if ($rolNombre)
+                                    <flux:badge :color="$this->rolBadgeColor($rolNombre)" size="sm">{{ $this->rolLabel($rolNombre) }}</flux:badge>
+                                @endif
+                                <flux:badge :color="$usuario->activo ? 'green' : 'zinc'" size="sm">
+                                    {{ $usuario->activo ? __('Activo') : __('Inactivo') }}
+                                </flux:badge>
+                                @if ($usuario->sucursal)
+                                    <span class="text-xs text-zinc-400">{{ $usuario->sucursal->nombre }}</span>
+                                @endif
                             </div>
                         </div>
-                    </flux:table.cell>
-
-                    <flux:table.cell>
-                        @if ($rolNombre)
-                            <flux:badge :color="$this->rolBadgeColor($rolNombre)">
-                                {{ $this->rolLabel($rolNombre) }}
-                            </flux:badge>
-                        @else
-                            <flux:text>—</flux:text>
-                        @endif
-                    </flux:table.cell>
-
-                    <flux:table.cell>
-                        {{ $usuario->sucursal?->nombre ?? '—' }}
-                    </flux:table.cell>
-
-                    <flux:table.cell>
-                        @if ($usuario->activo)
-                            <flux:badge color="green">{{ __('Activo') }}</flux:badge>
-                        @else
-                            <flux:badge color="zinc">{{ __('Inactivo') }}</flux:badge>
-                        @endif
-                    </flux:table.cell>
-
-                    <flux:table.cell>
-                        <div class="flex justify-end gap-2">
-                            <flux:button
-                                wire:click="toggleActivo({{ $usuario->id }})"
-                                size="sm"
-                                variant="subtle"
-                                :icon="$usuario->activo ? 'lock-open' : 'lock-closed'"
-                                inset="top bottom"
-                            />
-                            <flux:button
-                                wire:click="edit({{ $usuario->id }})"
-                                size="sm"
-                                variant="subtle"
-                                icon="pencil"
-                                inset="top bottom"
-                            />
-                        </div>
-                    </flux:table.cell>
-                </flux:table.row>
-            @endforeach
-        </flux:table.rows>
-    </flux:table>
+                    </div>
+                    <div class="flex shrink-0 gap-1">
+                        <flux:button wire:click="toggleActivo({{ $usuario->id }})" size="sm" variant="subtle" :icon="$usuario->activo ? 'lock-open' : 'lock-closed'" inset="top bottom" />
+                        <flux:button wire:click="edit({{ $usuario->id }})" size="sm" variant="subtle" icon="pencil" inset="top bottom" />
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
 
     @if ($this->usuarios->isEmpty())
         <div class="py-12 text-center">
