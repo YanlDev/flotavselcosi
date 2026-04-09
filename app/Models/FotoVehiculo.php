@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FotoVehiculo extends Model
 {
+    protected $table = 'fotos_vehiculos';
+
     protected $fillable = ['vehiculo_id', 'subido_por', 'key', 'categoria', 'descripcion'];
 
     public function vehiculo(): BelongsTo

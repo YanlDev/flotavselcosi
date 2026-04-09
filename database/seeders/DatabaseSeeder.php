@@ -21,11 +21,6 @@ class DatabaseSeeder extends Seeder
         // Crear las 6 sucursales
         $sucursales = [
             ['nombre' => 'Juliaca',   'ciudad' => 'Juliaca',   'region' => 'Puno'],
-            ['nombre' => 'Lima',      'ciudad' => 'Lima',       'region' => 'Lima'],
-            ['nombre' => 'Trujillo',  'ciudad' => 'Trujillo',   'region' => 'La Libertad'],
-            ['nombre' => 'Pucallpa',  'ciudad' => 'Pucallpa',   'region' => 'Ucayali'],
-            ['nombre' => 'Puno',      'ciudad' => 'Puno',       'region' => 'Puno'],
-            ['nombre' => 'Cusco',     'ciudad' => 'Cusco',      'region' => 'Cusco'],
         ];
 
         foreach ($sucursales as $data) {

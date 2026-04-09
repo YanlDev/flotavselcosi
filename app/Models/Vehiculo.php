@@ -20,7 +20,7 @@ class Vehiculo extends Model
         'num_motor', 'num_chasis', 'vin', 'propietario', 'ruc_propietario',
         'estado', 'problema_activo', 'combustible', 'transmision', 'traccion',
         'km_actuales', 'capacidad_carga', 'conductor_nombre', 'conductor_tel',
-        'fecha_adquisicion', 'gps_id', 'observaciones',
+        'fecha_adquisicion', 'tiene_gps', 'observaciones',
     ];
 
     protected function casts(): array
@@ -29,6 +29,7 @@ class Vehiculo extends Model
             'fecha_adquisicion' => 'date',
             'km_actuales' => 'integer',
             'anio' => 'integer',
+            'tiene_gps' => 'boolean',
         ];
     }
 

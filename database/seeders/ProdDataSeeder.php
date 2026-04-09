@@ -1,0 +1,213 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+
+class ProdDataSeeder extends Seeder
+{
+    public function run(): void
+    {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+        DB::table('sucursales')->truncate();
+        DB::table('vehiculos')->truncate();
+
+        // --- Sucursales ---
+        DB::table('sucursales')->insert([
+            [
+                'id'         => 1,
+                'nombre'     => 'Juliaca',
+                'ciudad'     => 'Juliaca',
+                'region'     => 'Puno',
+                'activa'     => true,
+                'created_at' => '2026-03-29 17:37:28',
+                'updated_at' => '2026-03-29 17:37:28',
+            ],
+            [
+                'id'         => 2,
+                'nombre'     => 'Cusco',
+                'ciudad'     => 'Cusco',
+                'region'     => 'Cusco',
+                'activa'     => true,
+                'created_at' => '2026-03-29 17:37:28',
+                'updated_at' => '2026-03-29 17:37:28',
+            ],
+        ]);
+
+        $userId = DB::table('users')->value('id');
+
+        // --- Vehículos ---
+        DB::table('vehiculos')->insert([
+            // JULIACA
+            [
+                'sucursal_id'       => 1,
+                'creado_por'        => $userId,
+                'placa'             => 'BSY-794',
+                'tipo'              => 'camioneta',
+                'marca'             => 'TOYOTA',
+                'modelo'            => 'HILUX',
+                'anio'              => 2023,
+                'color'             => 'NEGRO MICA',
+                'num_motor'         => '1GDG341526',
+                'num_chasis'        => '8AJBA3CD3P1741106',
+                'vin'               => null,
+                'propietario'       => 'ZAMBRANO PRINCIPE MARDEN GID',
+                'ruc_propietario'   => null,
+                'estado'            => 'operativo',
+                'problema_activo'   => null,
+                'combustible'       => 'diesel',
+                'transmision'       => 'manual',
+                'traccion'          => '4x4',
+                'km_actuales'       => 89696,
+                'capacidad_carga'   => '1000 kg',
+                'tiene_gps'         => true,
+                'fecha_adquisicion' => null,
+                'observaciones'     => 'Siguiente mantenimiento 90,000km cambio de aceite estado de llantas correcto se evidencia buen estado de la unidad y un leve sonido en motor, exintor para cambiar',
+                'created_at'        => '2026-03-30 23:23:21',
+                'updated_at'        => '2026-03-31 22:48:23',
+            ],
+            [
+                'sucursal_id'       => 1,
+                'creado_por'        => $userId,
+                'placa'             => 'BYN-860',
+                'tipo'              => 'furgon',
+                'marca'             => 'HINO',
+                'modelo'            => 'DUTRO',
+                'anio'              => 2024,
+                'color'             => 'BLANCO Y VERDE',
+                'num_motor'         => 'N04CWK22237',
+                'num_chasis'        => 'JHHYCP0F7RK029842',
+                'vin'               => null,
+                'propietario'       => null,
+                'ruc_propietario'   => null,
+                'estado'            => 'operativo',
+                'problema_activo'   => null,
+                'combustible'       => 'diesel',
+                'transmision'       => 'manual',
+                'traccion'          => null,
+                'km_actuales'       => null,
+                'capacidad_carga'   => null,
+                'tiene_gps'         => true,
+                'fecha_adquisicion' => null,
+                'observaciones'     => null,
+                'created_at'        => '2026-03-30 23:25:56',
+                'updated_at'        => '2026-03-30 23:25:56',
+            ],
+            [
+                'sucursal_id'       => 1,
+                'creado_por'        => $userId,
+                'placa'             => 'CFL-631',
+                'tipo'              => 'camioneta',
+                'marca'             => 'TOYOTA',
+                'modelo'            => 'FORTUNER',
+                'anio'              => 2024,
+                'color'             => 'NEGRO MICA',
+                'num_motor'         => '1GD5317461',
+                'num_chasis'        => '8AJBA3FS9R0333485',
+                'vin'               => null,
+                'propietario'       => 'SELCOSI EXPORT S.A.C.',
+                'ruc_propietario'   => null,
+                'estado'            => 'operativo',
+                'problema_activo'   => null,
+                'combustible'       => 'diesel',
+                'transmision'       => 'automatico',
+                'traccion'          => '4x4',
+                'km_actuales'       => 42924,
+                'capacidad_carga'   => '1000 kg',
+                'tiene_gps'         => true,
+                'fecha_adquisicion' => null,
+                'observaciones'     => "Cambio de Aceite a los 43,000km;\nFalta extintor, Conos de seguridad;\nSirena (pato) para reparación;\nLlanta de repuesto funcional;\nInterior en buen estado;\nLíquidos: frenos, refrigerante, aceite, limpia parabrisas con los valores normales.",
+                'created_at'        => '2026-03-30 23:22:14',
+                'updated_at'        => '2026-03-31 23:02:16',
+            ],
+            [
+                'sucursal_id'       => 1,
+                'creado_por'        => $userId,
+                'placa'             => '1721-LX',
+                'tipo'              => 'moto',
+                'marca'             => 'Honda',
+                'modelo'            => 'XR190L',
+                'anio'              => 2024,
+                'color'             => 'Negro',
+                'num_motor'         => 'MD43E2114150',
+                'num_chasis'        => 'LALMD4390R3207025',
+                'vin'               => null,
+                'propietario'       => 'Selcosi Export Gold',
+                'ruc_propietario'   => null,
+                'estado'            => 'operativo',
+                'problema_activo'   => null,
+                'combustible'       => 'gasolina',
+                'transmision'       => 'automatico',
+                'traccion'          => null,
+                'km_actuales'       => 86000,
+                'capacidad_carga'   => '200 kg',
+                'tiene_gps'         => false,
+                'fecha_adquisicion' => '2024-05-10',
+                'observaciones'     => null,
+                'created_at'        => '2026-04-06 16:14:34',
+                'updated_at'        => '2026-04-07 14:00:59',
+            ],
+            // CUSCO
+            [
+                'sucursal_id'       => 2,
+                'creado_por'        => $userId,
+                'placa'             => 'BYC-867',
+                'tipo'              => 'camioneta',
+                'marca'             => 'TOYOTA',
+                'modelo'            => 'HILUX',
+                'anio'              => 2024,
+                'color'             => 'NEGRO MICA',
+                'num_motor'         => '1GDG448705',
+                'num_chasis'        => '8AJBA3CD8R1802310',
+                'vin'               => null,
+                'propietario'       => 'ZAMBRANO PRINCIPE MARDEN GID',
+                'ruc_propietario'   => null,
+                'estado'            => 'operativo',
+                'problema_activo'   => null,
+                'combustible'       => 'diesel',
+                'transmision'       => 'manual',
+                'traccion'          => '4x4',
+                'km_actuales'       => 50731,
+                'capacidad_carga'   => '1000 kg',
+                'tiene_gps'         => true,
+                'fecha_adquisicion' => null,
+                'observaciones'     => "Camioneta de ruta larga, próximo a cambiar batería, cámara incorporada, cambio de extintor, falta conos de seguridad, triángulo.",
+                'created_at'        => '2026-03-30 23:20:19',
+                'updated_at'        => '2026-03-31 23:27:03',
+            ],
+            [
+                'sucursal_id'       => 2,
+                'creado_por'        => $userId,
+                'placa'             => 'CJC-778',
+                'tipo'              => 'camioneta',
+                'marca'             => 'TOYOTA',
+                'modelo'            => 'HILUX',
+                'anio'              => 2026,
+                'color'             => 'BLANCO',
+                'num_motor'         => '1GD1809566',
+                'num_chasis'        => '8AJBA3CD6T7970435',
+                'vin'               => null,
+                'propietario'       => null,
+                'ruc_propietario'   => null,
+                'estado'            => 'operativo',
+                'problema_activo'   => null,
+                'combustible'       => 'diesel',
+                'transmision'       => 'manual',
+                'traccion'          => '4x4',
+                'km_actuales'       => 3767,
+                'capacidad_carga'   => '1500 kg',
+                'tiene_gps'         => true,
+                'fecha_adquisicion' => '2025-11-25',
+                'observaciones'     => "Vehículo encontrado en buenas condiciones, tanto interior como exterior debidamente protegidos, no presenta fuga de líquidos, próximo mantenimiento es a los 5,000 km, cuenta con los documentos en orden en cartera sin embargo se debe definir próximamente el propietario ya que figura como propietario TOYOTA DEL PERU S.A.",
+                'created_at'        => '2026-03-30 23:15:54',
+                'updated_at'        => '2026-04-08 16:17:42',
+            ],
+        ]);
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+        $this->command->info('ProdDataSeeder: 2 sucursales y 6 vehículos insertados.');
+    }
+}

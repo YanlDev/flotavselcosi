@@ -40,10 +40,15 @@
                         {{ __('Combustible') }}
                     </flux:sidebar.item>
 
+                    @php
+                        $totalAlertas = app(\App\Services\AlertasService::class)->totalAlertas(auth()->user());
+                    @endphp
                     <flux:sidebar.item
                         icon="bell"
                         :href="route('alertas.index')"
                         :current="request()->routeIs('alertas.*')"
+                        :badge="$totalAlertas > 0 ? $totalAlertas : null"
+                        badge:color="red"
                         wire:navigate
                     >
                         {{ __('Alertas') }}

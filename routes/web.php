@@ -25,7 +25,7 @@ Route::get('/registro/{token}', function (string $token) {
 })->name('registro.invitacion');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::view('dashboard', 'dashboard')->name('dashboard');
+    Route::livewire('dashboard', 'pages::dashboard.index')->name('dashboard');
 
     // Vehículos
     Route::livewire('vehiculos', 'pages::vehiculos.index')->name('vehiculos.index');
@@ -37,9 +37,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('combustible', 'pages::combustible.index')->name('combustible.index');
     Route::livewire('combustible/{registroCombustible}', 'pages::combustible.show')->name('combustible.show');
 
-    // Stubs — serán reemplazados en fases siguientes
-    Route::view('alertas', 'dashboard')->name('alertas.index');
-    Route::view('conductores', 'dashboard')->name('conductores.index');
+    Route::livewire('alertas', 'pages::alertas.index')->name('alertas.index');
+    Route::livewire('conductores', 'pages::conductores.index')->name('conductores.index');
     Route::livewire('admin/usuarios', 'pages::admin.usuarios')->name('admin.usuarios');
     Route::livewire('admin/invitaciones', 'pages::admin.invitaciones')->name('admin.invitaciones');
     Route::livewire('admin/sucursales', 'pages::admin.sucursales')->name('admin.sucursales');

@@ -296,7 +296,7 @@ new #[Title('Detalle vehículo')] class extends Component {
                             __('Conductor') => $vehiculo->conductor_nombre ?? '—',
                             __('Teléfono') => $vehiculo->conductor_tel ?? '—',
                             __('Adquisición') => $vehiculo->fecha_adquisicion?->format('d/m/Y') ?? '—',
-                            __('GPS ID') => $vehiculo->gps_id ?? '—',
+                            __('GPS') => $vehiculo->tiene_gps ? 'Sí' : 'No',
                         ] as $label => $value)
                             <div class="flex items-baseline justify-between gap-2 text-sm">
                                 <dt class="text-zinc-500 shrink-0">{{ $label }}</dt>
@@ -326,15 +326,15 @@ new #[Title('Detalle vehículo')] class extends Component {
             <livewire:pages::vehiculos.combustible :vehiculo="$vehiculo" lazy />
         </div>
 
-        {{-- Tabs placeholders FASE 2 --}}
-        @foreach (['mantenimientos', 'fotos'] as $tabKey)
-            <div x-show="tab === '{{ $tabKey }}'" x-cloak>
-                <div class="flex flex-col items-center justify-center py-20 text-center">
-                    <flux:icon name="wrench-screwdriver" class="mb-3 size-10 text-zinc-300 dark:text-zinc-600" />
-                    <flux:text class="text-zinc-400">{{ __('Disponible próximamente.') }}</flux:text>
-                </div>
-            </div>
-        @endforeach
+        {{-- Tab: Mantenimientos --}}
+        <div x-show="tab === 'mantenimientos'" x-cloak>
+            <livewire:pages::vehiculos.mantenimientos :vehiculo="$vehiculo" lazy />
+        </div>
+
+        {{-- Tab: Fotos --}}
+        <div x-show="tab === 'fotos'" x-cloak>
+            <livewire:pages::vehiculos.fotos :vehiculo="$vehiculo" lazy />
+        </div>
     </div>
 
     {{-- Modal eliminar --}}

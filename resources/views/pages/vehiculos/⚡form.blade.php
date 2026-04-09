@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Conductor;
 use App\Models\Sucursal;
 use App\Models\Vehiculo;
 use Livewire\Attributes\Computed;
@@ -37,12 +38,11 @@ new #[Title('Vehículo')] class extends Component {
     public string $capacidadCarga = '';
 
     // Conductor
-    public string $conductorNombre = '';
-    public string $conductorTel = '';
+    public int|string $conductorId = '';
 
     // Administrativo
     public string $fechaAdquisicion = '';
-    public string $gpsId = '';
+    public bool $tieneGps = false;
     public string $observaciones = '';
 
     public function mount(?Vehiculo $vehiculo = null): void
@@ -70,10 +70,10 @@ new #[Title('Vehículo')] class extends Component {
             $this->traccion = $vehiculo->traccion ?? '';
             $this->kmActuales = (string) ($vehiculo->km_actuales ?? '');
             $this->capacidadCarga = $vehiculo->capacidad_carga ?? '';
-            $this->conductorNombre = $vehiculo->conductor_nombre ?? '';
-            $this->conductorTel = $vehiculo->conductor_tel ?? '';
+            $conductor = Conductor::where('vehiculo_id', $vehiculo->id)->activos()->first();
+            $this->conductorId = $conductor?->id ?? '';
             $this->fechaAdquisicion = $vehiculo->fecha_adquisicion?->format('Y-m-d') ?? '';
-            $this->gpsId = $vehiculo->gps_id ?? '';
+            $this->tieneGps = (bool) $vehiculo->tiene_gps;
             $this->observaciones = $vehiculo->observaciones ?? '';
         }
     }
@@ -82,6 +82,18 @@ new #[Title('Vehículo')] class extends Component {
     public function sucursales(): \Illuminate\Database\Eloquent\Collection
     {
         return Sucursal::activas()->orderBy('nombre')->get();
+    }
+
+    #[Computed]
+    public function conductores(): \Illuminate\Database\Eloquent\Collection
+    {
+        return Conductor::activos()
+            ->where(function ($q) {
+                $q->whereNull('vehiculo_id')
+                    ->orWhere('vehiculo_id', $this->editingId);
+            })
+            ->orderBy('nombre_completo')
+            ->get();
     }
 
     public function save(): void
@@ -112,10 +124,9 @@ new #[Title('Vehículo')] class extends Component {
             'traccion' => ['nullable', 'in:4x2,4x4'],
             'kmActuales' => ['nullable', 'integer', 'min:0'],
             'capacidadCarga' => ['nullable', 'string', 'max:50'],
-            'conductorNombre' => ['nullable', 'string', 'max:200'],
-            'conductorTel' => ['nullable', 'string', 'max:20'],
+            'conductorId' => ['nullable', 'exists:conductores,id'],
             'fechaAdquisicion' => ['nullable', 'date'],
-            'gpsId' => ['nullable', 'string', 'max:100'],
+            'tieneGps' => ['boolean'],
             'observaciones' => ['nullable', 'string'],
         ]);
 
@@ -139,19 +150,32 @@ new #[Title('Vehículo')] class extends Component {
             'traccion' => $validated['traccion'] ?: null,
             'km_actuales' => $validated['kmActuales'] ?: null,
             'capacidad_carga' => $validated['capacidadCarga'] ?: null,
-            'conductor_nombre' => $validated['conductorNombre'] ?: null,
-            'conductor_tel' => $validated['conductorTel'] ?: null,
             'fecha_adquisicion' => $validated['fechaAdquisicion'] ?: null,
-            'gps_id' => $validated['gpsId'] ?: null,
+            'tiene_gps' => $validated['tieneGps'],
             'observaciones' => $validated['observaciones'] ?: null,
         ];
 
+        // Resolver conductor seleccionado para campos de compatibilidad
+        $conductorSeleccionado = $validated['conductorId']
+            ? Conductor::find($validated['conductorId'])
+            : null;
+
+        $data['conductor_nombre'] = $conductorSeleccionado?->nombre_completo;
+        $data['conductor_tel'] = $conductorSeleccionado?->telefono;
+
         if ($this->editingId) {
             $vehiculo = Vehiculo::findOrFail($this->editingId);
+            // Desasignar conductor anterior si cambió
+            Conductor::where('vehiculo_id', $this->editingId)->update(['vehiculo_id' => null]);
             $vehiculo->update($data);
         } else {
             $data['creado_por'] = auth()->id();
             $vehiculo = Vehiculo::create($data);
+        }
+
+        // Asignar el nuevo conductor al vehículo
+        if ($conductorSeleccionado) {
+            $conductorSeleccionado->update(['vehiculo_id' => $vehiculo->id]);
         }
 
         $this->redirect(route('vehiculos.show', $vehiculo), navigate: true);
@@ -285,10 +309,23 @@ new #[Title('Vehículo')] class extends Component {
             <flux:heading size="lg">{{ __('Conductor asignado') }}</flux:heading>
             <flux:separator />
 
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <flux:input wire:model="conductorNombre" :label="__('Nombre del conductor')" />
-                <flux:input wire:model="conductorTel" :label="__('Teléfono')" type="tel" />
-            </div>
+            @if ($this->conductores->isEmpty())
+                <flux:callout color="zinc" icon="user-slash">
+                    <flux:callout.text>
+                        {{ __('No hay conductores registrados disponibles. Registra conductores desde el módulo de conductores.') }}
+                    </flux:callout.text>
+                </flux:callout>
+            @else
+                <flux:select wire:model="conductorId" :label="__('Conductor')">
+                    <flux:select.option value="">{{ __('Sin conductor asignado') }}</flux:select.option>
+                    @foreach ($this->conductores as $conductor)
+                        <flux:select.option :value="$conductor->id">
+                            {{ $conductor->nombre_completo }}
+                            @if ($conductor->licencia_categoria) · {{ $conductor->licencia_categoria }} @endif
+                        </flux:select.option>
+                    @endforeach
+                </flux:select>
+            @endif
         </div>
 
         {{-- Administrativo --}}
@@ -298,7 +335,12 @@ new #[Title('Vehículo')] class extends Component {
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <flux:input wire:model="fechaAdquisicion" :label="__('Fecha de adquisición')" type="date" />
-                <flux:input wire:model="gpsId" :label="__('ID GPS')" />
+                <div class="flex items-center gap-3 pt-6">
+                    <flux:checkbox wire:model="tieneGps" id="tieneGps" />
+                    <label for="tieneGps" class="text-sm font-medium cursor-pointer select-none">
+                        {{ __('Cuenta con GPS') }}
+                    </label>
+                </div>
             </div>
 
             <flux:textarea wire:model="observaciones" :label="__('Observaciones')" rows="3" />

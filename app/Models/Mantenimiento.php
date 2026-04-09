@@ -2,11 +2,16 @@
 
 namespace App\Models;
 
+use Database\Factories\MantenimientoFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Mantenimiento extends Model
 {
+    /** @use HasFactory<MantenimientoFactory> */
+    use HasFactory;
+
     protected $fillable = [
         'vehiculo_id', 'registrado_por', 'categoria', 'tipo', 'descripcion',
         'taller', 'costo', 'fecha_servicio', 'km_servicio', 'proximo_km',
