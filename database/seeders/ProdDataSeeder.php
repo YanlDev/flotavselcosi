@@ -9,16 +9,9 @@ class ProdDataSeeder extends Seeder
 {
     public function run(): void
     {
-        $isPgsql = DB::getDriverName() === 'pgsql';
-
-        if ($isPgsql) {
-            DB::statement("SET session_replication_role = 'replica';");
-        } else {
-            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        }
-
-        DB::table('vehiculos')->truncate();
-        DB::table('sucursales')->truncate();
+        // Borramos en orden respetando FK (sin necesidad de deshabilitar constraints)
+        DB::table('vehiculos')->delete();
+        DB::table('sucursales')->delete();
 
         // --- Sucursales ---
         DB::table('sucursales')->insert([
@@ -211,12 +204,6 @@ class ProdDataSeeder extends Seeder
                 'updated_at'        => '2026-04-08 16:17:42',
             ],
         ]);
-
-        if ($isPgsql) {
-            DB::statement("SET session_replication_role = 'origin';");
-        } else {
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-        }
 
         $this->command->info('ProdDataSeeder: 2 sucursales y 6 vehículos insertados.');
     }
