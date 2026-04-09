@@ -9,10 +9,16 @@ class ProdDataSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        $isPgsql = DB::getDriverName() === 'pgsql';
 
-        DB::table('sucursales')->truncate();
+        if ($isPgsql) {
+            DB::statement("SET session_replication_role = 'replica';");
+        } else {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        }
+
         DB::table('vehiculos')->truncate();
+        DB::table('sucursales')->truncate();
 
         // --- Sucursales ---
         DB::table('sucursales')->insert([
@@ -206,7 +212,11 @@ class ProdDataSeeder extends Seeder
             ],
         ]);
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        if ($isPgsql) {
+            DB::statement("SET session_replication_role = 'origin';");
+        } else {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
 
         $this->command->info('ProdDataSeeder: 2 sucursales y 6 vehículos insertados.');
     }
