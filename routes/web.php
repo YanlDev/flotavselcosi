@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\FotoVehiculoController;
 use App\Models\Invitacion;
 use Illuminate\Support\Facades\Route;
 
@@ -32,6 +33,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('vehiculos/crear', 'pages::vehiculos.form')->name('vehiculos.crear');
     Route::livewire('vehiculos/{vehiculo}/editar', 'pages::vehiculos.form')->name('vehiculos.editar');
     Route::livewire('vehiculos/{vehiculo}', 'pages::vehiculos.show')->name('vehiculos.show');
+
+    // Fotos proxy (caché HTTP)
+    Route::get('vehiculos/{vehiculo}/fotos/{foto}/thumbnail', [FotoVehiculoController::class, 'thumbnail'])->name('vehiculos.fotos.thumbnail');
+    Route::get('vehiculos/{vehiculo}/fotos/{foto}/original', [FotoVehiculoController::class, 'original'])->name('vehiculos.fotos.original');
 
     // Combustible
     Route::livewire('combustible', 'pages::combustible.index')->name('combustible.index');

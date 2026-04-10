@@ -9,7 +9,7 @@ class FotoVehiculo extends Model
 {
     protected $table = 'fotos_vehiculos';
 
-    protected $fillable = ['vehiculo_id', 'subido_por', 'key', 'categoria', 'descripcion'];
+    protected $fillable = ['vehiculo_id', 'subido_por', 'key', 'thumbnail_key', 'categoria', 'descripcion'];
 
     public function vehiculo(): BelongsTo
     {

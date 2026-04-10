@@ -2,6 +2,7 @@
 
 use App\Models\FotoVehiculo;
 use App\Models\Vehiculo;
+use App\Services\ImageService;
 use App\Services\StorageService;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -18,10 +19,6 @@ new class extends Component {
     public ?TemporaryUploadedFile $foto = null;
     public string $categoria = '';
     public string $descripcion = '';
-
-    // Preview lightbox
-    public ?string $previewUrl = null;
-    public string $previewDescripcion = '';
 
     // Eliminar
     public ?int $deletingId = null;
@@ -56,7 +53,7 @@ new class extends Component {
         $this->showUploadModal = true;
     }
 
-    public function guardar(StorageService $storage): void
+    public function guardar(StorageService $storage, ImageService $imageService): void
     {
         abort_unless(auth()->user()->esAdmin(), 403);
 
@@ -66,26 +63,25 @@ new class extends Component {
             'descripcion' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $key = $storage->upload($this->foto, "vehiculos/{$this->vehiculo->id}/fotos");
+        $folder = "vehiculos/{$this->vehiculo->id}/fotos";
+
+        // Subir original
+        $key = $storage->upload($this->foto, $folder);
+
+        // Generar thumbnail WebP 400×400
+        $thumbnailKey = $imageService->generateThumbnail($this->foto, $folder);
 
         FotoVehiculo::create([
-            'vehiculo_id' => $this->vehiculo->id,
-            'subido_por'  => auth()->id(),
-            'key'         => $key,
-            'categoria'   => $this->categoria,
-            'descripcion' => $this->descripcion ?: null,
+            'vehiculo_id'   => $this->vehiculo->id,
+            'subido_por'    => auth()->id(),
+            'key'           => $key,
+            'thumbnail_key' => $thumbnailKey,
+            'categoria'     => $this->categoria,
+            'descripcion'   => $this->descripcion ?: null,
         ]);
 
         unset($this->fotosPorCategoria, $this->totalFotos);
         $this->showUploadModal = false;
-    }
-
-    public function verFoto(int $id, StorageService $storage): void
-    {
-        $foto = FotoVehiculo::where('vehiculo_id', $this->vehiculo->id)->findOrFail($id);
-        $this->previewUrl         = $storage->temporaryUrl($foto->key);
-        $this->previewDescripcion = $foto->descripcion ?? $this->categoriaLabel($foto->categoria);
-        $this->dispatch('abrir-lightbox', url: $this->previewUrl, descripcion: $this->previewDescripcion);
     }
 
     public function confirmDelete(int $id): void
@@ -100,7 +96,14 @@ new class extends Component {
         abort_unless(auth()->user()->esAdmin(), 403);
 
         $foto = FotoVehiculo::where('vehiculo_id', $this->vehiculo->id)->findOrFail($this->deletingId);
+
+        // Eliminar original y thumbnail de S3
         $storage->delete($foto->key);
+
+        if ($foto->thumbnail_key) {
+            $storage->delete($foto->thumbnail_key);
+        }
+
         $foto->delete();
 
         unset($this->fotosPorCategoria, $this->totalFotos);
@@ -133,7 +136,6 @@ new class extends Component {
 <div
     class="space-y-6"
     x-data="{ show: false, url: '', descripcion: '' }"
-    x-on:abrir-lightbox.window="show = true; url = $event.detail.url; descripcion = $event.detail.descripcion"
 >
 
     {{-- Encabezado --}}
@@ -167,13 +169,20 @@ new class extends Component {
                     @foreach ($fotos as $foto)
                         <div class="group relative overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 aspect-square">
 
-                            {{-- Placeholder mientras carga la URL --}}
+                            {{-- Thumbnail con URL proxy estable (cacheada por el navegador) --}}
+                            <img
+                                src="{{ route('vehiculos.fotos.thumbnail', [$vehiculo, $foto]) }}"
+                                alt="{{ $foto->descripcion ?? $this->categoriaLabel($foto->categoria) }}"
+                                class="absolute inset-0 h-full w-full object-cover"
+                                loading="lazy"
+                            />
+
+                            {{-- Botón para abrir lightbox (sin roundtrip a Livewire) --}}
                             <button
                                 type="button"
-                                wire:click="verFoto({{ $foto->id }})"
-                                class="absolute inset-0 flex items-center justify-center w-full h-full"
+                                x-on:click="show = true; url = '{{ route('vehiculos.fotos.original', [$vehiculo, $foto]) }}'; descripcion = '{{ addslashes($foto->descripcion ?? $this->categoriaLabel($foto->categoria)) }}'"
+                                class="absolute inset-0 flex items-center justify-center w-full h-full cursor-zoom-in"
                             >
-                                <flux:icon name="photo" class="size-8 text-zinc-300 dark:text-zinc-600" />
                                 <span class="sr-only">{{ __('Ver foto') }}</span>
                             </button>
 
@@ -196,7 +205,7 @@ new class extends Component {
                                     @endif
                                     <button
                                         type="button"
-                                        wire:click="verFoto({{ $foto->id }})"
+                                        x-on:click="show = true; url = '{{ route('vehiculos.fotos.original', [$vehiculo, $foto]) }}'; descripcion = '{{ addslashes($foto->descripcion ?? $this->categoriaLabel($foto->categoria)) }}'"
                                         class="shrink-0 rounded-lg bg-white/20 p-1.5 text-white hover:bg-white/30"
                                     >
                                         <flux:icon name="arrows-pointing-out" class="size-3.5" />
@@ -240,14 +249,31 @@ new class extends Component {
                 <flux:field>
                     <flux:label>
                         {{ __('Foto') }}
-                        <span class="text-zinc-400 font-normal text-xs">(JPG, PNG, WEBP — máx. 10 MB)</span>
+                        <span class="text-zinc-400 font-normal text-xs">(JPG, PNG, WEBP, HEIC — máx. 10 MB)</span>
                     </flux:label>
-                    <input
-                        type="file"
-                        wire:model="foto"
-                        accept=".jpg,.jpeg,.png,.webp"
-                        class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 file:mr-3 file:cursor-pointer file:rounded file:border-0 file:bg-zinc-100 file:px-3 file:py-1 file:text-sm file:font-medium file:text-zinc-700 hover:file:bg-zinc-200 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:file:bg-zinc-700 dark:file:text-zinc-300"
-                    />
+
+                    <div
+                        x-data="imageCompressor()"
+                        x-on:livewire-upload-start="processing = false"
+                    >
+                        <input
+                            type="file"
+                            x-ref="fileInput"
+                            accept=".jpg,.jpeg,.png,.webp,.heic,.heif"
+                            x-on:change="compressAndUpload($event)"
+                            class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 file:mr-3 file:cursor-pointer file:rounded file:border-0 file:bg-zinc-100 file:px-3 file:py-1 file:text-sm file:font-medium file:text-zinc-700 hover:file:bg-zinc-200 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:file:bg-zinc-700 dark:file:text-zinc-300"
+                        />
+
+                        {{-- Barra de progreso de compresión --}}
+                        <div x-show="processing" x-cloak class="mt-2 flex items-center gap-2 text-xs text-zinc-500">
+                            <svg class="animate-spin size-3.5" viewBox="0 0 24 24" fill="none">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span>{{ __('Comprimiendo imagen...') }}</span>
+                        </div>
+                    </div>
+
                     <flux:error name="foto" />
                 </flux:field>
 
@@ -288,7 +314,7 @@ new class extends Component {
         </div>
     </flux:modal>
 
-    {{-- Lightbox (Alpine.js) --}}
+    {{-- Lightbox (Alpine.js) — usa URLs proxy estables --}}
     <div
         x-show="show"
         x-cloak
@@ -324,7 +350,7 @@ new class extends Component {
                 </div>
             </div>
 
-            {{-- Imagen --}}
+            {{-- Imagen original a resolución completa --}}
             <div class="flex flex-1 items-center justify-center overflow-hidden rounded-b-2xl bg-black/60 p-2">
                 <img
                     :src="url"
@@ -336,3 +362,52 @@ new class extends Component {
     </div>
 
 </div>
+
+@script
+<script>
+    /**
+     * Alpine.js component: comprime la imagen antes de subirla via Livewire.
+     * Convierte a WebP, redimensiona a max 2000px, calidad 80%.
+     * Soporta HEIC de iPhone nativamente via Canvas API.
+     */
+    Alpine.data('imageCompressor', () => ({
+        processing: false,
+
+        async compressAndUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            this.processing = true;
+
+            try {
+                const imageCompression = (await import('browser-image-compression')).default;
+
+                const options = {
+                    maxSizeMB: 1,
+                    maxWidthOrHeight: 2000,
+                    useWebWorker: true,
+                    fileType: 'image/webp',
+                    initialQuality: 0.8,
+                };
+
+                const compressedFile = await imageCompression(file, options);
+
+                // Subir via Livewire upload API
+                @this.upload('foto', compressedFile, () => {
+                    this.processing = false;
+                }, () => {
+                    this.processing = false;
+                });
+            } catch (error) {
+                console.warn('Compresión falló, subiendo original:', error);
+                // Fallback: subir el archivo original sin comprimir
+                @this.upload('foto', file, () => {
+                    this.processing = false;
+                }, () => {
+                    this.processing = false;
+                });
+            }
+        }
+    }));
+</script>
+@endscript

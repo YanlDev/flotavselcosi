@@ -197,7 +197,7 @@ new #[Title('Vehículos')] class extends Component {
                     <flux:table.row :key="$vehiculo->id">
                         <flux:table.cell>
                             <div>
-                                <p class="font-mono-data text-sm font-semibold text-slate-900 dark:text-white">{{ $vehiculo->placa }}</p>
+                                <a href="{{ route('vehiculos.show', $vehiculo) }}" wire:navigate class="font-mono-data text-sm font-semibold text-slate-900 hover:text-brand-600 dark:text-white dark:hover:text-brand-400 transition-colors">{{ $vehiculo->placa }}</a>
                                 <p class="text-xs text-slate-500 dark:text-slate-400">{{ $vehiculo->marca }} {{ $vehiculo->modelo }} · {{ $vehiculo->anio }}</p>
                             </div>
                         </flux:table.cell>
@@ -225,6 +225,7 @@ new #[Title('Vehículos')] class extends Component {
                                     size="sm" variant="subtle" icon="eye"
                                     inset="top bottom"
                                     wire:navigate
+                                    class="!text-sky-500 hover:!text-sky-700 dark:!text-sky-400 dark:hover:!text-sky-300"
                                 />
                                 @if (auth()->user()->esAdmin())
                                     <flux:button
@@ -232,11 +233,13 @@ new #[Title('Vehículos')] class extends Component {
                                         size="sm" variant="subtle" icon="pencil"
                                         inset="top bottom"
                                         wire:navigate
+                                        class="!text-emerald-500 hover:!text-emerald-700 dark:!text-emerald-400 dark:hover:!text-emerald-300"
                                     />
                                     <flux:button
                                         wire:click="confirmDelete({{ $vehiculo->id }})"
                                         size="sm" variant="subtle" icon="trash"
                                         inset="top bottom"
+                                        class="!text-red-500 hover:!text-red-700 dark:!text-red-400 dark:hover:!text-red-300"
                                     />
                                 @endif
                             </div>
@@ -254,7 +257,7 @@ new #[Title('Vehículos')] class extends Component {
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="font-mono-data text-base font-bold text-slate-900 dark:text-white">{{ $vehiculo->placa }}</span>
+                            <a href="{{ route('vehiculos.show', $vehiculo) }}" wire:navigate class="font-mono-data text-base font-bold text-slate-900 hover:text-brand-600 dark:text-white dark:hover:text-brand-400 transition-colors">{{ $vehiculo->placa }}</a>
                             <x-ui.badge-status :status="$vehiculo->estado" :label="$this->estadoLabel($vehiculo->estado)" />
                         </div>
                         <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
@@ -280,6 +283,7 @@ new #[Title('Vehículos')] class extends Component {
                             size="sm" variant="subtle" icon="eye"
                             inset="top bottom"
                             wire:navigate
+                            class="!text-sky-500 hover:!text-sky-700 dark:!text-sky-400 dark:hover:!text-sky-300"
                         />
                         @if (auth()->user()->esAdmin())
                             <flux:button
@@ -287,11 +291,13 @@ new #[Title('Vehículos')] class extends Component {
                                 size="sm" variant="subtle" icon="pencil"
                                 inset="top bottom"
                                 wire:navigate
+                                class="!text-emerald-500 hover:!text-emerald-700 dark:!text-emerald-400 dark:hover:!text-emerald-300"
                             />
                             <flux:button
                                 wire:click="confirmDelete({{ $vehiculo->id }})"
                                 size="sm" variant="subtle" icon="trash"
                                 inset="top bottom"
+                                class="!text-red-500 hover:!text-red-700 dark:!text-red-400 dark:hover:!text-red-300"
                             />
                         @endif
                     </div>

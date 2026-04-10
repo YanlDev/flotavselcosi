@@ -2,20 +2,26 @@
     'sidebar' => false,
 ])
 
-@php
-    $brandName = config('app.name', 'Selcosi Flota');
-@endphp
-
 @if ($sidebar)
-    <flux:sidebar.brand :name="$brandName" {{ $attributes }}>
-        <x-slot name="logo" class="flex aspect-square size-9 items-center justify-center rounded-lg bg-white ring-1 ring-brand-200 dark:bg-brand-950 dark:ring-brand-800">
-            <img src="{{ asset('selcosilog.png') }}" alt="{{ $brandName }}" class="size-7 object-contain" />
-        </x-slot>
-    </flux:sidebar.brand>
+    <a 
+        href="{{ route('dashboard') }}" 
+        class="flex h-10 w-full items-center justify-center px-2 text-center text-[15px] font-roboto font-black uppercase tracking-tight text-brand-600 transition-colors hover:text-brand-700 dark:text-brand-500 dark:hover:text-brand-400 in-data-flux-sidebar-collapsed-desktop:hidden"
+        {{ $attributes->except('href') }}
+    >
+        SELCOSI FLOTA VEHICULAR
+    </a>
+    <a 
+        href="{{ route('dashboard') }}" 
+        class="hidden h-10 w-10 items-center justify-center font-roboto text-xl font-black text-brand-600 transition-colors hover:text-brand-700 dark:text-brand-500 dark:hover:text-brand-400 in-data-flux-sidebar-collapsed-desktop:flex"
+    >
+        S
+    </a>
 @else
-    <flux:brand :name="$brandName" {{ $attributes }}>
-        <x-slot name="logo" class="flex aspect-square size-9 items-center justify-center rounded-lg bg-white ring-1 ring-brand-200 dark:bg-brand-950 dark:ring-brand-800">
-            <img src="{{ asset('selcosilog.png') }}" alt="{{ $brandName }}" class="size-7 object-contain" />
-        </x-slot>
-    </flux:brand>
+    <a 
+        href="{{ route('dashboard') }}" 
+        class="flex items-center text-[15px] font-roboto font-black uppercase tracking-tight text-brand-600 transition-colors hover:text-brand-700 dark:text-brand-500 dark:hover:text-brand-400"
+        {{ $attributes->except('href') }}
+    >
+        SELCOSI FLOTA VEHICULAR
+    </a>
 @endif
