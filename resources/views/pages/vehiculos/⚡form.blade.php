@@ -70,12 +70,16 @@ new #[Title('Vehículo')] class extends Component {
             $this->traccion = $vehiculo->traccion ?? '';
             $this->kmActuales = (string) ($vehiculo->km_actuales ?? '');
             $this->capacidadCarga = $vehiculo->capacidad_carga ?? '';
-            $conductor = Conductor::where('vehiculo_id', $vehiculo->id)->activos()->first();
-            $this->conductorId = $conductor?->id ?? '';
+            $this->conductorId = $vehiculo->conductor_id ?? '';
             $this->fechaAdquisicion = $vehiculo->fecha_adquisicion?->format('Y-m-d') ?? '';
             $this->tieneGps = (bool) $vehiculo->tiene_gps;
             $this->observaciones = $vehiculo->observaciones ?? '';
         }
+    }
+
+    public function updatedSucursalId(): void
+    {
+        $this->conductorId = '';
     }
 
     #[Computed]
@@ -88,10 +92,7 @@ new #[Title('Vehículo')] class extends Component {
     public function conductores(): \Illuminate\Database\Eloquent\Collection
     {
         return Conductor::activos()
-            ->where(function ($q) {
-                $q->whereNull('vehiculo_id')
-                    ->orWhere('vehiculo_id', $this->editingId);
-            })
+            ->when($this->sucursalId, fn ($q) => $q->where('sucursal_id', $this->sucursalId))
             ->orderBy('nombre_completo')
             ->get();
     }
@@ -124,7 +125,7 @@ new #[Title('Vehículo')] class extends Component {
             'traccion' => ['nullable', 'in:4x2,4x4'],
             'kmActuales' => ['nullable', 'integer', 'min:0'],
             'capacidadCarga' => ['nullable', 'string', 'max:50'],
-            'conductorId' => ['nullable', 'exists:conductores,id'],
+            'conductorId' => ['nullable', 'exists:conductores,id,deleted_at,NULL'],
             'fechaAdquisicion' => ['nullable', 'date'],
             'tieneGps' => ['boolean'],
             'observaciones' => ['nullable', 'string'],
@@ -155,27 +156,21 @@ new #[Title('Vehículo')] class extends Component {
             'observaciones' => $validated['observaciones'] ?: null,
         ];
 
-        // Resolver conductor seleccionado para campos de compatibilidad
+        // Resolver conductor y sincronizar campos de visualización
         $conductorSeleccionado = $validated['conductorId']
             ? Conductor::find($validated['conductorId'])
             : null;
 
+        $data['conductor_id'] = $conductorSeleccionado?->id;
         $data['conductor_nombre'] = $conductorSeleccionado?->nombre_completo;
         $data['conductor_tel'] = $conductorSeleccionado?->telefono;
 
         if ($this->editingId) {
             $vehiculo = Vehiculo::findOrFail($this->editingId);
-            // Desasignar conductor anterior si cambió
-            Conductor::where('vehiculo_id', $this->editingId)->update(['vehiculo_id' => null]);
             $vehiculo->update($data);
         } else {
             $data['creado_por'] = auth()->id();
             $vehiculo = Vehiculo::create($data);
-        }
-
-        // Asignar el nuevo conductor al vehículo
-        if ($conductorSeleccionado) {
-            $conductorSeleccionado->update(['vehiculo_id' => $vehiculo->id]);
         }
 
         $this->redirect(route('vehiculos.show', $vehiculo), navigate: true);

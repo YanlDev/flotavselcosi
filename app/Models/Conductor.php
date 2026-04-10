@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Conductor extends Model
@@ -17,7 +18,7 @@ class Conductor extends Model
     protected $table = 'conductores';
 
     protected $fillable = [
-        'sucursal_id', 'vehiculo_id', 'nombre_completo', 'dni', 'telefono', 'email',
+        'sucursal_id', 'nombre_completo', 'dni', 'telefono', 'email',
         'foto_path', 'licencia_numero', 'licencia_categoria', 'licencia_vencimiento', 'activo',
     ];
 
@@ -34,9 +35,9 @@ class Conductor extends Model
         return $this->belongsTo(Sucursal::class);
     }
 
-    public function vehiculo(): BelongsTo
+    public function vehiculos(): HasMany
     {
-        return $this->belongsTo(Vehiculo::class);
+        return $this->hasMany(Vehiculo::class);
     }
 
     public function scopeActivos(Builder $query): Builder

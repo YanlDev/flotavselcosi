@@ -16,7 +16,7 @@ class Vehiculo extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'sucursal_id', 'creado_por', 'placa', 'tipo', 'marca', 'modelo', 'anio', 'color',
+        'sucursal_id', 'conductor_id', 'creado_por', 'placa', 'tipo', 'marca', 'modelo', 'anio', 'color',
         'num_motor', 'num_chasis', 'vin', 'propietario', 'ruc_propietario',
         'estado', 'problema_activo', 'combustible', 'transmision', 'traccion',
         'km_actuales', 'capacidad_carga', 'conductor_nombre', 'conductor_tel',
@@ -43,9 +43,9 @@ class Vehiculo extends Model
         return $this->belongsTo(User::class, 'creado_por');
     }
 
-    public function conductor(): HasMany
+    public function conductor(): BelongsTo
     {
-        return $this->hasMany(Conductor::class);
+        return $this->belongsTo(Conductor::class);
     }
 
     public function fotos(): HasMany
@@ -84,7 +84,7 @@ class Vehiculo extends Model
             $q->where('placa', 'like', "%{$termino}%")
                 ->orWhere('marca', 'like', "%{$termino}%")
                 ->orWhere('modelo', 'like', "%{$termino}%")
-                ->orWhere('conductor_nombre', 'like', "%{$termino}%");
+                ->orWhereHas('conductor', fn (Builder $c) => $c->where('nombre_completo', 'like', "%{$termino}%"));
         });
     }
 

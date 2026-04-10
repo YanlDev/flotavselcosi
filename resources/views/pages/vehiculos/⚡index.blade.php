@@ -46,7 +46,7 @@ new #[Title('Vehículos')] class extends Component {
     #[Computed]
     public function vehiculos(): \Illuminate\Pagination\LengthAwarePaginator
     {
-        return Vehiculo::with('sucursal')
+        return Vehiculo::with(['sucursal', 'conductor'])
             ->forUser(auth()->user())
             ->when($this->search, fn ($q) => $q->search($this->search))
             ->when($this->filterEstado, fn ($q) => $q->where('estado', $this->filterEstado))
@@ -212,7 +212,7 @@ new #[Title('Vehículos')] class extends Component {
                             <flux:table.cell class="text-sm text-slate-600 dark:text-slate-300">{{ $vehiculo->sucursal?->nombre ?? '—' }}</flux:table.cell>
                         @endif
 
-                        <flux:table.cell class="text-sm text-slate-600 dark:text-slate-300">{{ $vehiculo->conductor_nombre ?? '—' }}</flux:table.cell>
+                        <flux:table.cell class="text-sm text-slate-600 dark:text-slate-300">{{ $vehiculo->conductor?->nombre_completo ?? '—' }}</flux:table.cell>
 
                         <flux:table.cell>
                             <x-ui.badge-status :status="$vehiculo->estado" :label="$this->estadoLabel($vehiculo->estado)" />
@@ -263,10 +263,10 @@ new #[Title('Vehículos')] class extends Component {
                         <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
                             {{ $vehiculo->marca }} {{ $vehiculo->modelo }} · {{ $vehiculo->anio }}
                         </p>
-                        @if ($vehiculo->conductor_nombre)
+                        @if ($vehiculo->conductor)
                             <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
                                 <flux:icon name="user" class="inline size-3 mr-0.5" />
-                                {{ $vehiculo->conductor_nombre }}
+                                {{ $vehiculo->conductor->nombre_completo }}
                             </p>
                         @endif
                         @if (auth()->user()->puedeVerTodo() && $vehiculo->sucursal)

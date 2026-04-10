@@ -30,7 +30,9 @@ new #[Title('Conductores')] class extends Component {
     public string $telefono = '';
     public string $email = '';
     public string $sucursalId = '';
-    public string $vehiculoId = '';
+    /** @var array<int> IDs de vehículos asignados al conductor */
+    public array $vehiculosIds = [];
+    public bool $mostrarTodosVehiculos = false;
     public string $licenciaNumero = '';
     public string $licenciaCategoria = '';
     public string $licenciaVencimiento = '';
@@ -64,7 +66,7 @@ new #[Title('Conductores')] class extends Component {
     #[Computed]
     public function conductores(): \Illuminate\Pagination\LengthAwarePaginator
     {
-        return Conductor::with(['sucursal', 'vehiculo'])
+        return Conductor::with(['sucursal', 'vehiculos'])
             ->withTrashed(false)
             ->when($this->search, function ($q) {
                 $q->where(function ($q2) {
@@ -85,11 +87,27 @@ new #[Title('Conductores')] class extends Component {
         return Sucursal::activas()->orderBy('nombre')->get();
     }
 
+    /**
+     * Vehículos disponibles para asignar al conductor.
+     * Muestra primero los de la sucursal del conductor, luego el resto si se activa el toggle.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, Vehiculo>
+     */
     #[Computed]
     public function vehiculosDisponibles(): \Illuminate\Database\Eloquent\Collection
     {
-        return Vehiculo::orderBy('placa')
-            ->get(['id', 'placa', 'marca', 'modelo', 'sucursal_id']);
+        $query = Vehiculo::with('sucursal')
+            ->orderBy('placa')
+            ->get(['id', 'placa', 'marca', 'modelo', 'sucursal_id', 'conductor_id']);
+
+        if (! $this->mostrarTodosVehiculos && $this->sucursalId) {
+            return $query->filter(
+                fn ($v) => $v->sucursal_id == $this->sucursalId
+                    || in_array($v->id, $this->vehiculosIds)
+            )->values();
+        }
+
+        return $query;
     }
 
     public function licenciaAlertaColor(Conductor $conductor): ?string
@@ -114,8 +132,8 @@ new #[Title('Conductores')] class extends Component {
         abort_unless(auth()->user()->esAdmin(), 403);
         $this->reset([
             'editingId', 'nombreCompleto', 'dni', 'telefono', 'email',
-            'sucursalId', 'vehiculoId', 'licenciaNumero', 'licenciaCategoria',
-            'licenciaVencimiento',
+            'sucursalId', 'vehiculosIds', 'mostrarTodosVehiculos',
+            'licenciaNumero', 'licenciaCategoria', 'licenciaVencimiento',
         ]);
         $this->activo = true;
         $this->showModal = true;
@@ -124,7 +142,7 @@ new #[Title('Conductores')] class extends Component {
     public function abrirEditar(int $id): void
     {
         abort_unless(auth()->user()->esAdmin(), 403);
-        $c = Conductor::findOrFail($id);
+        $c = Conductor::with('vehiculos')->findOrFail($id);
 
         $this->editingId            = $c->id;
         $this->nombreCompleto       = $c->nombre_completo;
@@ -132,7 +150,8 @@ new #[Title('Conductores')] class extends Component {
         $this->telefono             = $c->telefono ?? '';
         $this->email                = $c->email ?? '';
         $this->sucursalId           = $c->sucursal_id ? (string) $c->sucursal_id : '';
-        $this->vehiculoId           = $c->vehiculo_id ? (string) $c->vehiculo_id : '';
+        $this->vehiculosIds         = $c->vehiculos->pluck('id')->map(fn ($id) => (string) $id)->toArray();
+        $this->mostrarTodosVehiculos = false;
         $this->licenciaNumero       = $c->licencia_numero ?? '';
         $this->licenciaCategoria    = $c->licencia_categoria ?? '';
         $this->licenciaVencimiento  = $c->licencia_vencimiento?->format('Y-m-d') ?? '';
@@ -153,7 +172,8 @@ new #[Title('Conductores')] class extends Component {
             'telefono'            => ['nullable', 'string', 'max:20'],
             'email'               => ['nullable', 'email', 'max:255'],
             'sucursalId'          => ['required', 'exists:sucursales,id'],
-            'vehiculoId'          => ['nullable', 'exists:vehiculos,id'],
+            'vehiculosIds'        => ['nullable', 'array'],
+            'vehiculosIds.*'      => ['exists:vehiculos,id'],
             'licenciaNumero'      => ['nullable', 'string', 'max:20'],
             'licenciaCategoria'   => ['nullable', 'string', 'max:10'],
             'licenciaVencimiento' => ['nullable', 'date'],
@@ -165,7 +185,6 @@ new #[Title('Conductores')] class extends Component {
             'telefono'             => $this->telefono ?: null,
             'email'                => $this->email ?: null,
             'sucursal_id'          => $this->sucursalId ?: null,
-            'vehiculo_id'          => $this->vehiculoId ?: null,
             'licencia_numero'      => $this->licenciaNumero ?: null,
             'licencia_categoria'   => $this->licenciaCategoria ?: null,
             'licencia_vencimiento' => $this->licenciaVencimiento ?: null,
@@ -173,9 +192,32 @@ new #[Title('Conductores')] class extends Component {
         ];
 
         if ($this->editingId) {
-            Conductor::findOrFail($this->editingId)->update($data);
+            $conductor = Conductor::findOrFail($this->editingId);
+            $conductor->update($data);
         } else {
-            Conductor::create($data);
+            $conductor = Conductor::create($data);
+        }
+
+        // Sincronizar asignación de vehículos
+        $vehiculosSeleccionados = array_map('intval', $this->vehiculosIds);
+
+        // Desasignar vehículos que ya no corresponden a este conductor
+        Vehiculo::where('conductor_id', $conductor->id)
+            ->whereNotIn('id', $vehiculosSeleccionados)
+            ->update([
+                'conductor_id'     => null,
+                'conductor_nombre' => null,
+                'conductor_tel'    => null,
+            ]);
+
+        // Asignar los vehículos seleccionados
+        if (! empty($vehiculosSeleccionados)) {
+            Vehiculo::whereIn('id', $vehiculosSeleccionados)
+                ->update([
+                    'conductor_id'     => $conductor->id,
+                    'conductor_nombre' => $conductor->nombre_completo,
+                    'conductor_tel'    => $conductor->telefono,
+                ]);
         }
 
         unset($this->conductores);
@@ -192,7 +234,17 @@ new #[Title('Conductores')] class extends Component {
     public function delete(): void
     {
         abort_unless(auth()->user()->esAdmin(), 403);
-        Conductor::findOrFail($this->deletingId)->delete();
+        $conductor = Conductor::findOrFail($this->deletingId);
+
+        // Desasignar vehículos antes de eliminar
+        Vehiculo::where('conductor_id', $conductor->id)
+            ->update([
+                'conductor_id'     => null,
+                'conductor_nombre' => null,
+                'conductor_tel'    => null,
+            ]);
+
+        $conductor->delete();
 
         unset($this->conductores);
         $this->deletingId = null;
@@ -257,7 +309,7 @@ new #[Title('Conductores')] class extends Component {
                 <flux:table.column>{{ __('Conductor') }}</flux:table.column>
                 <flux:table.column>{{ __('DNI') }}</flux:table.column>
                 <flux:table.column>{{ __('Sucursal') }}</flux:table.column>
-                <flux:table.column>{{ __('Vehículo asignado') }}</flux:table.column>
+                <flux:table.column>{{ __('Vehículos asignados') }}</flux:table.column>
                 <flux:table.column>{{ __('Licencia') }}</flux:table.column>
                 <flux:table.column>{{ __('Estado') }}</flux:table.column>
                 <flux:table.column></flux:table.column>
@@ -285,11 +337,17 @@ new #[Title('Conductores')] class extends Component {
                         </flux:table.cell>
 
                         <flux:table.cell>
-                            @if ($conductor->vehiculo)
-                                <span class="font-mono-data text-sm font-semibold">{{ $conductor->vehiculo->placa }}</span>
-                                <span class="text-xs text-zinc-500 ml-1">
-                                    {{ $conductor->vehiculo->marca }} {{ $conductor->vehiculo->modelo }}
-                                </span>
+                            @if ($conductor->vehiculos->isNotEmpty())
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach ($conductor->vehiculos->take(3) as $v)
+                                        <span class="font-mono-data text-xs font-semibold bg-slate-100 dark:bg-slate-800 rounded px-1.5 py-0.5">
+                                            {{ $v->placa }}
+                                        </span>
+                                    @endforeach
+                                    @if ($conductor->vehiculos->count() > 3)
+                                        <span class="text-xs text-zinc-400">+{{ $conductor->vehiculos->count() - 3 }}</span>
+                                    @endif
+                                </div>
                             @else
                                 <span class="text-zinc-400 text-sm">—</span>
                             @endif
@@ -372,10 +430,10 @@ new #[Title('Conductores')] class extends Component {
                                 {{ $conductor->sucursal->nombre }}
                             </p>
                         @endif
-                        @if ($conductor->vehiculo)
+                        @if ($conductor->vehiculos->isNotEmpty())
                             <p class="mt-0.5 text-xs text-zinc-400">
                                 <flux:icon name="truck" class="inline size-3 mr-0.5" />
-                                {{ $conductor->vehiculo->placa }} — {{ $conductor->vehiculo->marca }} {{ $conductor->vehiculo->modelo }}
+                                {{ $conductor->vehiculos->pluck('placa')->implode(', ') }}
                             </p>
                         @endif
                         @if ($conductor->licencia_vencimiento)
@@ -463,23 +521,71 @@ new #[Title('Conductores')] class extends Component {
                     />
                 </div>
 
-                {{-- Asignación --}}
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <flux:select wire:model="sucursalId" :label="__('Sucursal')" required>
-                        <flux:select.option value="">{{ __('Seleccionar') }}</flux:select.option>
-                        @foreach ($this->sucursales as $sucursal)
-                            <flux:select.option :value="$sucursal->id">{{ $sucursal->nombre }}</flux:select.option>
-                        @endforeach
-                    </flux:select>
+                {{-- Sucursal --}}
+                <flux:select wire:model.live="sucursalId" :label="__('Sucursal')" required>
+                    <flux:select.option value="">{{ __('Seleccionar') }}</flux:select.option>
+                    @foreach ($this->sucursales as $sucursal)
+                        <flux:select.option :value="$sucursal->id">{{ $sucursal->nombre }}</flux:select.option>
+                    @endforeach
+                </flux:select>
 
-                    <flux:select wire:model="vehiculoId" :label="__('Vehículo asignado (opcional)')">
-                        <flux:select.option value="">{{ __('Sin asignar') }}</flux:select.option>
-                        @foreach ($this->vehiculosDisponibles as $v)
-                            <flux:select.option :value="$v->id">
-                                {{ $v->placa }} — {{ $v->marca }} {{ $v->modelo }}
-                            </flux:select.option>
-                        @endforeach
-                    </flux:select>
+                {{-- Vehículos asignados --}}
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            {{ __('Vehículos asignados') }}
+                            @if (count($vehiculosIds) > 0)
+                                <flux:badge color="blue" size="sm" class="ml-1">{{ count($vehiculosIds) }}</flux:badge>
+                            @endif
+                        </p>
+                        @if ($sucursalId)
+                            <button
+                                type="button"
+                                wire:click="$toggle('mostrarTodosVehiculos')"
+                                class="text-xs text-brand-600 hover:text-brand-800 dark:text-brand-400 dark:hover:text-brand-300 underline"
+                            >
+                                {{ $mostrarTodosVehiculos ? __('Solo mi sucursal') : __('Ver todas las sucursales') }}
+                            </button>
+                        @endif
+                    </div>
+
+                    @if ($this->vehiculosDisponibles->isEmpty())
+                        <p class="text-sm text-zinc-400 italic">
+                            {{ $sucursalId ? __('No hay vehículos registrados en esta sucursal.') : __('Selecciona una sucursal primero.') }}
+                        </p>
+                    @else
+                        <div class="max-h-48 overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-700 divide-y divide-zinc-100 dark:divide-zinc-800">
+                            @foreach ($this->vehiculosDisponibles as $vehiculo)
+                                @php
+                                    $asignadoOtro = $vehiculo->conductor_id && $vehiculo->conductor_id != $editingId;
+                                @endphp
+                                <label
+                                    class="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors {{ $asignadoOtro ? 'opacity-60' : '' }}"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        wire:model="vehiculosIds"
+                                        value="{{ $vehiculo->id }}"
+                                        class="size-4 rounded border-zinc-300 text-brand-600 focus:ring-brand-500"
+                                    />
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="font-mono-data text-sm font-semibold">{{ $vehiculo->placa }}</span>
+                                            <span class="text-xs text-zinc-500">{{ $vehiculo->marca }} {{ $vehiculo->modelo }}</span>
+                                            @if ($vehiculo->sucursal_id != $sucursalId)
+                                                <flux:badge color="zinc" size="sm">{{ $vehiculo->sucursal?->nombre }}</flux:badge>
+                                            @endif
+                                        </div>
+                                        @if ($asignadoOtro)
+                                            <p class="text-xs text-amber-500 mt-0.5">
+                                                {{ __('Asignado a otro conductor') }}
+                                            </p>
+                                        @endif
+                                    </div>
+                                </label>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
                 {{-- Licencia --}}

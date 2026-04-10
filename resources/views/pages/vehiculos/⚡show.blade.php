@@ -12,7 +12,7 @@ new #[Title('Detalle vehículo')] class extends Component {
     public function mount(Vehiculo $vehiculo): void
     {
         $this->authorize('view', $vehiculo);
-        $this->vehiculo = $vehiculo->load('sucursal');
+        $this->vehiculo = $vehiculo->load('sucursal', 'conductor');
     }
 
     public function delete(): void
@@ -154,12 +154,12 @@ new #[Title('Detalle vehículo')] class extends Component {
                             {{ $vehiculo->sucursal->nombre }}
                         </span>
                     @endif
-                    @if ($vehiculo->conductor_nombre)
+                    @if ($vehiculo->conductor)
                         <span class="flex items-center gap-1">
                             <flux:icon name="user" class="size-3.5" />
-                            {{ $vehiculo->conductor_nombre }}
-                            @if ($vehiculo->conductor_tel)
-                                · {{ $vehiculo->conductor_tel }}
+                            {{ $vehiculo->conductor->nombre_completo }}
+                            @if ($vehiculo->conductor->telefono)
+                                · {{ $vehiculo->conductor->telefono }}
                             @endif
                         </span>
                     @endif
@@ -295,8 +295,8 @@ new #[Title('Detalle vehículo')] class extends Component {
                     </h3>
                     <dl class="space-y-2.5">
                         @foreach ([
-                            __('Conductor') => $vehiculo->conductor_nombre ?? '—',
-                            __('Teléfono') => $vehiculo->conductor_tel ?? '—',
+                            __('Conductor') => $vehiculo->conductor?->nombre_completo ?? '—',
+                            __('Teléfono') => $vehiculo->conductor?->telefono ?? '—',
                             __('Adquisición') => $vehiculo->fecha_adquisicion?->format('d/m/Y') ?? '—',
                             __('GPS') => $vehiculo->tiene_gps ? 'Sí' : 'No',
                         ] as $label => $value)
