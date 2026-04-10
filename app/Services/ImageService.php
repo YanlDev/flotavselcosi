@@ -6,6 +6,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Encoders\WebpEncoder;
 use Intervention\Image\ImageManager;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -15,7 +16,7 @@ class ImageService
 
     public function __construct()
     {
-        $this->manager = new ImageManager(new Driver);
+        $this->manager = new ImageManager(Driver::class);
     }
 
     /**
@@ -42,20 +43,20 @@ class ImageService
                 fclose($stream);
             }
 
-            $image = $this->manager->read($contents);
+            $image = $this->manager->decodeBinary($contents);
         } else {
-            $image = $this->manager->read($file->get());
+            $image = $this->manager->decodeBinary($file->get());
         }
 
         // Redimensionar con cover crop (rellena el cuadrado sin distorsionar)
         $image->cover($size, $size);
 
         // Codificar a WebP
-        $encoded = $image->toWebp($quality)->toString();
+        $encoded = $image->encode(new WebpEncoder($quality));
 
         // Generar key y subir a S3
-        $key = $folder.'/'.Str::uuid().'_thumb.webp';
-        Storage::disk(app(StorageService::class)->disk())->put($key, $encoded, 'private');
+        $key = $folder . '/' . Str::uuid() . '_thumb.webp';
+        Storage::disk(app(StorageService::class)->disk())->put($key, (string) $encoded, 'private');
 
         return $key;
     }

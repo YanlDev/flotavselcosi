@@ -380,8 +380,6 @@ new class extends Component {
             this.processing = true;
 
             try {
-                const imageCompression = (await import('browser-image-compression')).default;
-
                 const options = {
                     maxSizeMB: 1,
                     maxWidthOrHeight: 2000,
@@ -390,7 +388,7 @@ new class extends Component {
                     initialQuality: 0.8,
                 };
 
-                const compressedBlob = await imageCompression(file, options);
+                const compressedBlob = await window.imageCompression(file, options);
 
                 // Crear un File con nombre .webp para que Livewire valide correctamente
                 const webpName = file.name.replace(/\.[^.]+$/, '') + '.webp';
