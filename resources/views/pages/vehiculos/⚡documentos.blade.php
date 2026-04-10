@@ -186,10 +186,10 @@ new class extends Component {
             <flux:text class="text-zinc-400">{{ __('No hay documentos registrados.') }}</flux:text>
         </div>
     @else
-        @foreach ($this->documentos->groupBy('tipo') as $tipo => $docs)
+        @foreach ($this->documentos->groupBy('tipo') as $grupoTipo => $docs)
             <div class="space-y-2">
                 <flux:heading size="sm" class="text-zinc-500 uppercase tracking-wide text-xs">
-                    {{ $this->tipoLabel($tipo) }}
+                    {{ $this->tipoLabel($grupoTipo) }}
                 </flux:heading>
 
                 <div class="divide-y divide-zinc-100 dark:divide-zinc-700 rounded-lg border border-zinc-200 dark:border-zinc-700">
@@ -278,10 +278,10 @@ new class extends Component {
                     <flux:error name="archivo" />
                 </flux:field>
 
-                @if (in_array($tipo, ['soat', 'revision_tecnica', 'otro']))
+                @if (in_array($this->tipo, ['soat', 'revision_tecnica', 'otro']))
                     <flux:input
                         wire:model="vencimiento"
-                        :label="in_array($tipo, ['soat', 'revision_tecnica']) ? __('Fecha de vencimiento') : __('Fecha de vencimiento (opcional)')"
+                        :label="in_array($this->tipo, ['soat', 'revision_tecnica']) ? __('Fecha de vencimiento') : __('Fecha de vencimiento (opcional)')"
                         type="date"
                     />
                     <flux:error name="vencimiento" />
