@@ -390,22 +390,33 @@ new class extends Component {
                     initialQuality: 0.8,
                 };
 
-                const compressedFile = await imageCompression(file, options);
+                const compressedBlob = await imageCompression(file, options);
 
-                // Subir via Livewire upload API
-                @this.upload('foto', compressedFile, () => {
+                // Crear un File con nombre .webp para que Livewire valide correctamente
+                const webpName = file.name.replace(/\.[^.]+$/, '') + '.webp';
+                const webpFile = new File([compressedBlob], webpName, { type: 'image/webp' });
+
+                @this.upload('foto', webpFile, () => {
                     this.processing = false;
                 }, () => {
                     this.processing = false;
                 });
             } catch (error) {
-                console.warn('Compresión falló, subiendo original:', error);
-                // Fallback: subir el archivo original sin comprimir
-                @this.upload('foto', file, () => {
+                console.warn('Compresión falló:', error);
+
+                // Solo subir si es un formato que el servidor acepta
+                const supported = ['image/jpeg', 'image/png', 'image/webp'];
+                if (supported.includes(file.type)) {
+                    @this.upload('foto', file, () => {
+                        this.processing = false;
+                    }, () => {
+                        this.processing = false;
+                    });
+                } else {
                     this.processing = false;
-                }, () => {
-                    this.processing = false;
-                });
+                    alert('Este formato no es compatible con tu navegador. Por favor convierte la imagen a JPG o PNG antes de subirla.');
+                    event.target.value = '';
+                }
             }
         }
     }));
