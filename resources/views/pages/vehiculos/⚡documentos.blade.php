@@ -249,7 +249,7 @@ new class extends Component {
         <div class="space-y-6">
             <flux:heading size="lg">{{ __('Subir documento') }}</flux:heading>
 
-            <form wire:submit="guardar" class="space-y-4">
+            <form wire:submit="guardar" class="space-y-4" novalidate>
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <flux:select wire:model.live="tipo" :label="__('Tipo')" required>
                         <flux:select.option value="">{{ __('Seleccionar') }}</flux:select.option>
@@ -278,19 +278,13 @@ new class extends Component {
                     <flux:error name="archivo" />
                 </flux:field>
 
-                @if (in_array($tipo, ['soat', 'revision_tecnica']))
+                @if (in_array($tipo, ['soat', 'revision_tecnica', 'otro']))
                     <flux:input
                         wire:model="vencimiento"
-                        :label="__('Fecha de vencimiento')"
-                        type="date"
-                        required
-                    />
-                @else
-                    <flux:input
-                        wire:model="vencimiento"
-                        :label="__('Fecha de vencimiento (opcional)')"
+                        :label="in_array($tipo, ['soat', 'revision_tecnica']) ? __('Fecha de vencimiento') : __('Fecha de vencimiento (opcional)')"
                         type="date"
                     />
+                    <flux:error name="vencimiento" />
                 @endif
 
                 <flux:textarea wire:model="observaciones" :label="__('Observaciones')" rows="2" />
