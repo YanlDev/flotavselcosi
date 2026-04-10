@@ -131,6 +131,20 @@ new #[Title('Dashboard')] class extends Component {
             ->get();
     }
 
+    #[Computed]
+    public function misEnviosRecientes(): \Illuminate\Database\Eloquent\Collection
+    {
+        if (auth()->user()->esAdmin()) {
+            return collect();
+        }
+
+        return RegistroCombustible::where('enviado_por', auth()->id())
+            ->with('vehiculo')
+            ->latest()
+            ->limit(5)
+            ->get();
+    }
+
     public function estadoBadgeColor(string $estado): string
     {
         return match ($estado) {
@@ -337,13 +351,7 @@ new #[Title('Dashboard')] class extends Component {
             </x-ui.section-card>
 
         @else
-            @php
-                $misEnvios = \App\Models\RegistroCombustible::where('enviado_por', auth()->id())
-                    ->with('vehiculo')
-                    ->latest()
-                    ->limit(5)
-                    ->get();
-            @endphp
+
             <x-ui.section-card :title="__('Mis envíos recientes de combustible')" :padded="false">
                 <x-slot:actions>
                     <flux:button :href="route('combustible.index')" variant="ghost" size="sm" wire:navigate>
@@ -351,9 +359,9 @@ new #[Title('Dashboard')] class extends Component {
                     </flux:button>
                 </x-slot:actions>
 
-                @if ($misEnvios->isNotEmpty())
+                @if ($this->misEnviosRecientes->isNotEmpty())
                     <ul class="divide-y divide-slate-100 dark:divide-slate-800">
-                        @foreach ($misEnvios as $envio)
+                        @foreach ($this->misEnviosRecientes as $envio)
                             <li>
                                 <a
                                     href="{{ route('combustible.show', $envio) }}"
