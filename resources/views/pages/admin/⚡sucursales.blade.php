@@ -92,20 +92,24 @@ new #[Title('Sucursales')] class extends Component {
     }
 }; ?>
 
-<section class="w-full">
-    <div class="mb-6 flex items-center justify-between gap-4">
-        <div>
-            <flux:heading size="xl">{{ __('Sucursales') }}</flux:heading>
-            <flux:text class="hidden sm:block">{{ __('Gestiona las sucursales de la empresa.') }}</flux:text>
-        </div>
-        <flux:button wire:click="openCreate" variant="primary" icon="plus">
-            <span class="hidden sm:inline">{{ __('Nueva sucursal') }}</span>
-            <span class="sm:hidden">{{ __('Nueva') }}</span>
-        </flux:button>
-    </div>
+<section class="w-full p-6 lg:p-8">
+    <x-ui.page-header
+        :title="__('Sucursales')"
+        :subtitle="__('Gestiona las sucursales de la empresa')"
+        :breadcrumbs="[
+            ['label' => __('Dashboard'), 'href' => route('dashboard')],
+            ['label' => __('Sucursales')],
+        ]"
+    >
+        <x-slot:actions>
+            <flux:button wire:click="openCreate" variant="primary" icon="plus">
+                {{ __('Nueva sucursal') }}
+            </flux:button>
+        </x-slot:actions>
+    </x-ui.page-header>
 
     {{-- Tabla desktop --}}
-    <div class="hidden sm:block">
+    <div class="hidden sm:block overflow-hidden rounded-xl border border-slate-200 bg-white px-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <flux:table>
             <flux:table.columns>
                 <flux:table.column>{{ __('Nombre') }}</flux:table.column>

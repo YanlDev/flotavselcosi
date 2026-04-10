@@ -152,222 +152,141 @@ new #[Title('Dashboard')] class extends Component {
     }
 }; ?>
 
-<section class="w-full space-y-8">
+<section class="w-full p-6 lg:p-8">
 
-    {{-- Encabezado --}}
-    <div>
-        <flux:heading size="xl">{{ __('Dashboard') }}</flux:heading>
-        <flux:text>
-            {{ __('Bienvenido,') }} {{ auth()->user()->name }}.
-            @if (! auth()->user()->esAdmin() && auth()->user()->sucursal)
-                {{ auth()->user()->sucursal->nombre }}
-            @endif
-        </flux:text>
-    </div>
-
-    {{-- KPIs: Flota --}}
-    <div>
-        <h2 class="mb-3 text-sm font-semibold text-zinc-500 uppercase tracking-wide">{{ __('Estado de la flota') }}</h2>
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-
-            {{-- Total --}}
-            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-4">
-                <div class="flex items-center justify-between gap-2">
-                    <flux:icon name="truck" class="size-5 text-zinc-400" />
-                    <span class="text-xs text-zinc-500">{{ __('Total') }}</span>
-                </div>
-                <p class="mt-2 text-3xl font-bold text-zinc-800 dark:text-zinc-100">
-                    {{ $this->kpis['totalFlota'] }}
-                </p>
-                <p class="mt-0.5 text-xs text-zinc-500">{{ __('vehículos') }}</p>
-            </div>
-
-            {{-- Operativos --}}
-            <div class="rounded-xl border border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950 p-4">
-                <div class="flex items-center justify-between gap-2">
-                    <flux:icon name="check-circle" class="size-5 text-emerald-500" />
-                    <span class="text-xs text-emerald-600 dark:text-emerald-400">{{ __('Operativos') }}</span>
-                </div>
-                <p class="mt-2 text-3xl font-bold text-emerald-700 dark:text-emerald-300">
-                    {{ $this->kpis['totalOperativos'] }}
-                </p>
-                <p class="mt-0.5 text-xs text-emerald-600 dark:text-emerald-400">
-                    @if ($this->kpis['totalFlota'] > 0)
-                        {{ round($this->kpis['totalOperativos'] / $this->kpis['totalFlota'] * 100) }}%
-                    @else
-                        0%
-                    @endif
-                </p>
-            </div>
-
-            {{-- Parciales --}}
-            <div class="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950 p-4">
-                <div class="flex items-center justify-between gap-2">
-                    <flux:icon name="exclamation-triangle" class="size-5 text-amber-500" />
-                    <span class="text-xs text-amber-600 dark:text-amber-400">{{ __('Parciales') }}</span>
-                </div>
-                <p class="mt-2 text-3xl font-bold text-amber-700 dark:text-amber-300">
-                    {{ $this->kpis['totalParciales'] }}
-                </p>
-                <p class="mt-0.5 text-xs text-amber-600 dark:text-amber-400">{{ __('con problemas') }}</p>
-            </div>
-
-            {{-- Fuera de servicio --}}
-            <div class="rounded-xl border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950 p-4">
-                <div class="flex items-center justify-between gap-2">
-                    <flux:icon name="x-circle" class="size-5 text-red-500" />
-                    <span class="text-xs text-red-600 dark:text-red-400">{{ __('Fuera de servicio') }}</span>
-                </div>
-                <p class="mt-2 text-3xl font-bold text-red-700 dark:text-red-300">
-                    {{ $this->kpis['totalFueraServicio'] }}
-                </p>
-                <p class="mt-0.5 text-xs text-red-600 dark:text-red-400">{{ __('inoperativos') }}</p>
-            </div>
-
-        </div>
-    </div>
-
-    {{-- KPIs: Operaciones del mes --}}
-    <div>
-        <h2 class="mb-3 text-sm font-semibold text-zinc-500 uppercase tracking-wide">
-            {{ __('Este mes') }} — {{ now()->translatedFormat('F Y') }}
-        </h2>
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-
-            {{-- Galones combustible --}}
-            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-4">
-                <div class="flex items-center justify-between gap-2">
-                    <flux:icon name="fire" class="size-5 text-orange-400" />
-                    <span class="text-xs text-zinc-500">{{ __('Combustible') }}</span>
-                </div>
-                <p class="mt-2 text-2xl font-bold text-zinc-800 dark:text-zinc-100">
-                    {{ number_format($this->kpis['galonesEsteMes'], 1) }}
-                </p>
-                <p class="mt-0.5 text-xs text-zinc-500">{{ __('galones cargados') }}</p>
-            </div>
-
-            {{-- Monto combustible --}}
-            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-4">
-                <div class="flex items-center justify-between gap-2">
-                    <flux:icon name="currency-dollar" class="size-5 text-green-400" />
-                    <span class="text-xs text-zinc-500">{{ __('Gasto comb.') }}</span>
-                </div>
-                <p class="mt-2 text-2xl font-bold text-zinc-800 dark:text-zinc-100">
-                    S/ {{ number_format($this->kpis['montoEsteMes'], 0) }}
-                </p>
-                <p class="mt-0.5 text-xs text-zinc-500">{{ __('monto total') }}</p>
-            </div>
-
-            {{-- Documentos por vencer --}}
-            <a
-                href="{{ route('alertas.index') }}"
-                wire:navigate
-                class="rounded-xl border p-4 transition-colors
-                    {{ $this->kpis['docsAlerta'] > 0
-                        ? 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950'
-                        : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900' }}"
-            >
-                <div class="flex items-center justify-between gap-2">
-                    <flux:icon name="document-text" class="size-5 {{ $this->kpis['docsAlerta'] > 0 ? 'text-amber-500' : 'text-zinc-400' }}" />
-                    <span class="text-xs {{ $this->kpis['docsAlerta'] > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500' }}">
-                        {{ __('Docs. alerta') }}
-                    </span>
-                </div>
-                <p class="mt-2 text-2xl font-bold {{ $this->kpis['docsAlerta'] > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-zinc-800 dark:text-zinc-100' }}">
-                    {{ $this->kpis['docsAlerta'] }}
-                </p>
-                <p class="mt-0.5 text-xs {{ $this->kpis['docsAlerta'] > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500' }}">
-                    {{ __('próximos 30 días') }}
-                </p>
-            </a>
-
-            {{-- Mantenimientos urgentes --}}
-            <a
-                href="{{ route('alertas.index') }}"
-                wire:navigate
-                class="rounded-xl border p-4 transition-colors
-                    {{ $this->kpis['mantUrgentes'] > 0
-                        ? 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950'
-                        : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900' }}"
-            >
-                <div class="flex items-center justify-between gap-2">
-                    <flux:icon name="wrench-screwdriver" class="size-5 {{ $this->kpis['mantUrgentes'] > 0 ? 'text-amber-500' : 'text-zinc-400' }}" />
-                    <span class="text-xs {{ $this->kpis['mantUrgentes'] > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500' }}">
-                        {{ __('Mant. urgentes') }}
-                    </span>
-                </div>
-                <p class="mt-2 text-2xl font-bold {{ $this->kpis['mantUrgentes'] > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-zinc-800 dark:text-zinc-100' }}">
-                    {{ $this->kpis['mantUrgentes'] }}
-                </p>
-                <p class="mt-0.5 text-xs {{ $this->kpis['mantUrgentes'] > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500' }}">
-                    {{ __('≤30 días o ≤1,000 km') }}
-                </p>
-            </a>
-
-        </div>
-    </div>
+    <x-ui.page-header
+        :title="__('Dashboard')"
+        :subtitle="__('Bienvenido,') . ' ' . auth()->user()->name . (! auth()->user()->esAdmin() && auth()->user()->sucursal ? ' · ' . auth()->user()->sucursal->nombre : '')"
+    />
 
     {{-- Combustible pendiente (solo admin) --}}
     @if (auth()->user()->esAdmin() && $this->kpis['combustiblePendiente'] > 0)
-        <flux:callout color="amber" icon="clock">
-            <flux:callout.heading>
-                {{ $this->kpis['combustiblePendiente'] }}
-                {{ $this->kpis['combustiblePendiente'] === 1 ? __('carga pendiente') : __('cargas pendientes') }}
-                {{ __('de revisión') }}
-            </flux:callout.heading>
-            <flux:callout.text>
-                <a href="{{ route('combustible.index') }}" wire:navigate class="underline underline-offset-2">
-                    {{ __('Ir a revisión de combustible') }}
-                </a>
-            </flux:callout.text>
-        </flux:callout>
+        <div class="mb-6">
+            <flux:callout color="amber" icon="clock">
+                <flux:callout.heading>
+                    {{ $this->kpis['combustiblePendiente'] }}
+                    {{ $this->kpis['combustiblePendiente'] === 1 ? __('carga pendiente') : __('cargas pendientes') }}
+                    {{ __('de revisión') }}
+                </flux:callout.heading>
+                <flux:callout.text>
+                    <a href="{{ route('combustible.index') }}" wire:navigate class="underline underline-offset-2">
+                        {{ __('Ir a revisión de combustible') }}
+                    </a>
+                </flux:callout.text>
+            </flux:callout>
+        </div>
     @endif
 
-    {{-- Grid inferior: Últimos vehículos + Flota por sucursal --}}
+    {{-- KPIs: Estado de la flota --}}
+    <div class="mb-8">
+        <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {{ __('Estado de la flota') }}
+        </h2>
+        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <x-ui.stat-card
+                :label="__('Total de vehículos')"
+                :value="$this->kpis['totalFlota']"
+                icon="truck"
+                color="slate"
+                :href="route('vehiculos.index')"
+            />
+            <x-ui.stat-card
+                :label="__('Operativos')"
+                :value="$this->kpis['totalOperativos']"
+                icon="check-circle"
+                color="brand"
+                :hint="$this->kpis['totalFlota'] > 0 ? round($this->kpis['totalOperativos'] / $this->kpis['totalFlota'] * 100) . '% de la flota' : null"
+            />
+            <x-ui.stat-card
+                :label="__('Parciales')"
+                :value="$this->kpis['totalParciales']"
+                icon="exclamation-triangle"
+                color="warning"
+                :hint="__('con problemas')"
+            />
+            <x-ui.stat-card
+                :label="__('Fuera de servicio')"
+                :value="$this->kpis['totalFueraServicio']"
+                icon="x-circle"
+                color="danger"
+                :hint="__('inoperativos')"
+            />
+        </div>
+    </div>
+
+    {{-- KPIs: Este mes --}}
+    <div class="mb-8">
+        <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {{ __('Este mes') }} — {{ now()->translatedFormat('F Y') }}
+        </h2>
+        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <x-ui.stat-card
+                :label="__('Combustible cargado')"
+                :value="number_format($this->kpis['galonesEsteMes'], 1) . ' gal'"
+                icon="fire"
+                color="info"
+            />
+            <x-ui.stat-card
+                :label="__('Gasto en combustible')"
+                :value="'S/ ' . number_format($this->kpis['montoEsteMes'], 0)"
+                icon="currency-dollar"
+                color="brand"
+            />
+            <x-ui.stat-card
+                :label="__('Documentos en alerta')"
+                :value="$this->kpis['docsAlerta']"
+                icon="document-text"
+                :color="$this->kpis['docsAlerta'] > 0 ? 'warning' : 'slate'"
+                :hint="__('próximos 30 días')"
+                :href="route('alertas.index')"
+            />
+            <x-ui.stat-card
+                :label="__('Mantenimientos urgentes')"
+                :value="$this->kpis['mantUrgentes']"
+                icon="wrench-screwdriver"
+                :color="$this->kpis['mantUrgentes'] > 0 ? 'warning' : 'slate'"
+                :hint="__('≤30 días o ≤1,000 km')"
+                :href="route('alertas.index')"
+            />
+        </div>
+    </div>
+
+    {{-- Grid inferior --}}
     <div class="grid gap-6 lg:grid-cols-2">
 
-        {{-- Últimos 5 vehículos registrados --}}
-        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-            <div class="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 px-4 py-3">
-                <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                    {{ __('Últimos vehículos registrados') }}
-                </h3>
-                <flux:button
-                    :href="route('vehiculos.index')"
-                    variant="ghost" size="sm"
-                    wire:navigate
-                >
+        {{-- Últimos vehículos registrados --}}
+        <x-ui.section-card :title="__('Últimos vehículos registrados')" :padded="false">
+            <x-slot:actions>
+                <flux:button :href="route('vehiculos.index')" variant="ghost" size="sm" wire:navigate>
                     {{ __('Ver todos') }}
                 </flux:button>
-            </div>
+            </x-slot:actions>
 
             @if ($this->ultimosVehiculos->isNotEmpty())
-                <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                <ul class="divide-y divide-slate-100 dark:divide-slate-800">
                     @foreach ($this->ultimosVehiculos as $vehiculo)
                         <li>
                             <a
                                 href="{{ route('vehiculos.show', $vehiculo) }}"
                                 wire:navigate
-                                class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                                class="flex items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                             >
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-2">
-                                        <span class="font-mono font-semibold text-sm">{{ $vehiculo->placa }}</span>
-                                        <flux:badge
-                                            :color="$this->estadoBadgeColor($vehiculo->estado)"
-                                            size="sm"
-                                        >
-                                            {{ $this->estadoLabel($vehiculo->estado) }}
-                                        </flux:badge>
+                                        <span class="font-mono-data text-sm font-semibold text-slate-900 dark:text-white">{{ $vehiculo->placa }}</span>
+                                        <x-ui.badge-status
+                                            :status="$vehiculo->estado"
+                                            :label="$this->estadoLabel($vehiculo->estado)"
+                                        />
                                     </div>
-                                    <p class="text-xs text-zinc-500 truncate">
+                                    <p class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
                                         {{ $vehiculo->marca }} {{ $vehiculo->modelo }}
                                         @if ($vehiculo->sucursal && auth()->user()->esAdmin())
                                             · {{ $vehiculo->sucursal->nombre }}
                                         @endif
                                     </p>
                                 </div>
-                                <span class="text-xs text-zinc-400 whitespace-nowrap">
+                                <span class="whitespace-nowrap text-xs text-slate-400 dark:text-slate-500">
                                     {{ $vehiculo->created_at->diffForHumans() }}
                                 </span>
                             </a>
@@ -375,121 +294,85 @@ new #[Title('Dashboard')] class extends Component {
                     @endforeach
                 </ul>
             @else
-                <div class="px-4 py-10 text-center">
-                    <flux:icon name="truck" class="mx-auto mb-2 size-8 text-zinc-300 dark:text-zinc-600" />
-                    <flux:text class="text-sm">{{ __('Sin vehículos registrados.') }}</flux:text>
-                </div>
+                <x-ui.empty-state icon="truck" :title="__('Sin vehículos registrados')" />
             @endif
-        </div>
+        </x-ui.section-card>
 
-        {{-- Flota por sucursal (solo admin) | Combustible pendiente reciente --}}
+        {{-- Flota por sucursal (admin) o Mis envíos (otros) --}}
         @if (auth()->user()->esAdmin())
-            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-                <div class="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 px-4 py-3">
-                    <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                        {{ __('Flota por sucursal') }}
-                    </h3>
-                </div>
-
+            <x-ui.section-card :title="__('Flota por sucursal')" :padded="false">
                 @if ($this->flotaPorSucursal->isNotEmpty())
-                    <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    <ul class="divide-y divide-slate-100 dark:divide-slate-800">
                         @foreach ($this->flotaPorSucursal as $sucursal)
-                            <li class="flex items-center gap-3 px-4 py-3">
+                            <li class="flex items-center gap-3 px-5 py-3">
                                 <div class="min-w-0 flex-1">
-                                    <p class="text-sm font-medium truncate">{{ $sucursal->nombre }}</p>
-                                    <div class="mt-1 flex gap-2">
+                                    <p class="truncate text-sm font-medium text-slate-900 dark:text-white">{{ $sucursal->nombre }}</p>
+                                    <div class="mt-1 flex gap-2 text-xs">
                                         @if ($sucursal->operativos_count > 0)
-                                            <span class="text-xs text-emerald-600 dark:text-emerald-400">
-                                                {{ $sucursal->operativos_count }} op.
-                                            </span>
+                                            <span class="text-brand-600 dark:text-brand-400">{{ $sucursal->operativos_count }} op.</span>
                                         @endif
                                         @if ($sucursal->parciales_count > 0)
-                                            <span class="text-xs text-amber-600 dark:text-amber-400">
-                                                {{ $sucursal->parciales_count }} parc.
-                                            </span>
+                                            <span class="text-amber-600 dark:text-amber-400">{{ $sucursal->parciales_count }} parc.</span>
                                         @endif
                                         @if ($sucursal->fuera_servicio_count > 0)
-                                            <span class="text-xs text-red-600 dark:text-red-400">
-                                                {{ $sucursal->fuera_servicio_count }} fuera
-                                            </span>
+                                            <span class="text-red-600 dark:text-red-400">{{ $sucursal->fuera_servicio_count }} fuera</span>
                                         @endif
                                         @if ($sucursal->vehiculos_count === 0)
-                                            <span class="text-xs text-zinc-400">{{ __('Sin vehículos') }}</span>
+                                            <span class="text-slate-400">{{ __('Sin vehículos') }}</span>
                                         @endif
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-1.5 shrink-0">
-                                    <span class="text-2xl font-bold text-zinc-700 dark:text-zinc-300">
+                                <div class="flex shrink-0 items-baseline gap-1.5">
+                                    <span class="font-mono-data text-2xl font-semibold text-slate-900 dark:text-white">
                                         {{ $sucursal->vehiculos_count }}
                                     </span>
-                                    <span class="text-xs text-zinc-400">veh.</span>
+                                    <span class="text-xs text-slate-400">veh.</span>
                                 </div>
                             </li>
                         @endforeach
                     </ul>
                 @else
-                    <div class="px-4 py-10 text-center">
-                        <flux:text class="text-sm">{{ __('Sin datos.') }}</flux:text>
-                    </div>
+                    <x-ui.empty-state icon="building-office" :title="__('Sin sucursales')" />
                 @endif
-            </div>
+            </x-ui.section-card>
 
         @else
-            {{-- jefe_resguardo / visor: cargas pendientes recientes (sus envíos) --}}
-            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-                <div class="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 px-4 py-3">
-                    <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                        {{ __('Mis envíos recientes de combustible') }}
-                    </h3>
-                    <flux:button
-                        :href="route('combustible.index')"
-                        variant="ghost" size="sm"
-                        wire:navigate
-                    >
+            @php
+                $misEnvios = \App\Models\RegistroCombustible::where('enviado_por', auth()->id())
+                    ->with('vehiculo')
+                    ->latest()
+                    ->limit(5)
+                    ->get();
+            @endphp
+            <x-ui.section-card :title="__('Mis envíos recientes de combustible')" :padded="false">
+                <x-slot:actions>
+                    <flux:button :href="route('combustible.index')" variant="ghost" size="sm" wire:navigate>
                         {{ __('Ver todos') }}
                     </flux:button>
-                </div>
-
-                @php
-                    $misEnvios = \App\Models\RegistroCombustible::where('enviado_por', auth()->id())
-                        ->with('vehiculo')
-                        ->latest()
-                        ->limit(5)
-                        ->get();
-                @endphp
+                </x-slot:actions>
 
                 @if ($misEnvios->isNotEmpty())
-                    <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    <ul class="divide-y divide-slate-100 dark:divide-slate-800">
                         @foreach ($misEnvios as $envio)
                             <li>
                                 <a
                                     href="{{ route('combustible.show', $envio) }}"
                                     wire:navigate
-                                    class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                                    class="flex items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                 >
                                     <div class="min-w-0 flex-1">
-                                        <span class="font-mono font-semibold text-sm">{{ $envio->vehiculo?->placa ?? '—' }}</span>
-                                        <p class="text-xs text-zinc-500">{{ $envio->created_at->format('d/m/Y H:i') }}</p>
+                                        <span class="font-mono-data text-sm font-semibold text-slate-900 dark:text-white">{{ $envio->vehiculo?->placa ?? '—' }}</span>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400">{{ $envio->created_at->format('d/m/Y H:i') }}</p>
                                     </div>
-                                    <flux:badge
-                                        :color="match($envio->estado) { 'aprobado' => 'green', 'rechazado' => 'red', default => 'amber' }"
-                                        size="sm"
-                                    >
-                                        {{ ucfirst($envio->estado) }}
-                                    </flux:badge>
+                                    <x-ui.badge-status :status="$envio->estado" />
                                 </a>
                             </li>
                         @endforeach
                     </ul>
                 @else
-                    <div class="px-4 py-10 text-center">
-                        <flux:icon name="fire" class="mx-auto mb-2 size-8 text-zinc-300 dark:text-zinc-600" />
-                        <flux:text class="text-sm">{{ __('Sin envíos recientes.') }}</flux:text>
-                    </div>
+                    <x-ui.empty-state icon="fire" :title="__('Sin envíos recientes')" />
                 @endif
-            </div>
+            </x-ui.section-card>
         @endif
-
     </div>
-
 </section>

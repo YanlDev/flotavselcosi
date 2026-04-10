@@ -103,20 +103,24 @@ new #[Title('Invitaciones')] class extends Component {
     }
 }; ?>
 
-<section class="w-full">
-    <div class="mb-6 flex items-center justify-between gap-4">
-        <div>
-            <flux:heading size="xl">{{ __('Invitaciones') }}</flux:heading>
-            <flux:text class="hidden sm:block">{{ __('Genera enlaces de registro y compártelos manualmente.') }}</flux:text>
-        </div>
-        <flux:button wire:click="openCreate" variant="primary" icon="link">
-            <span class="hidden sm:inline">{{ __('Nueva invitación') }}</span>
-            <span class="sm:hidden">{{ __('Nueva') }}</span>
-        </flux:button>
-    </div>
+<section class="w-full p-6 lg:p-8">
+    <x-ui.page-header
+        :title="__('Invitaciones')"
+        :subtitle="__('Genera enlaces de registro y compártelos manualmente')"
+        :breadcrumbs="[
+            ['label' => __('Dashboard'), 'href' => route('dashboard')],
+            ['label' => __('Invitaciones')],
+        ]"
+    >
+        <x-slot:actions>
+            <flux:button wire:click="openCreate" variant="primary" icon="link">
+                {{ __('Nueva invitación') }}
+            </flux:button>
+        </x-slot:actions>
+    </x-ui.page-header>
 
     {{-- Tabla desktop --}}
-    <div class="hidden sm:block">
+    <div class="hidden sm:block overflow-hidden rounded-xl border border-slate-200 bg-white px-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <flux:table>
             <flux:table.columns>
                 <flux:table.column>{{ __('Email') }}</flux:table.column>

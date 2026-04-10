@@ -106,14 +106,18 @@ new #[Title('Usuarios')] class extends Component {
     }
 }; ?>
 
-<section class="w-full">
-    <div class="mb-6">
-        <flux:heading size="xl">{{ __('Usuarios') }}</flux:heading>
-        <flux:text class="hidden sm:block">{{ __('Gestiona los roles, sucursales y acceso de los usuarios.') }}</flux:text>
-    </div>
+<section class="w-full p-6 lg:p-8">
+    <x-ui.page-header
+        :title="__('Usuarios')"
+        :subtitle="__('Gestiona los roles, sucursales y acceso de los usuarios')"
+        :breadcrumbs="[
+            ['label' => __('Dashboard'), 'href' => route('dashboard')],
+            ['label' => __('Usuarios')],
+        ]"
+    />
 
     {{-- Tabla desktop --}}
-    <div class="hidden sm:block">
+    <div class="hidden sm:block overflow-hidden rounded-xl border border-slate-200 bg-white px-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <flux:table>
             <flux:table.columns>
                 <flux:table.column>{{ __('Usuario') }}</flux:table.column>

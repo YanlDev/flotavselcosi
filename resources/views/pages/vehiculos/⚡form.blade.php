@@ -187,13 +187,22 @@ new #[Title('Vehículo')] class extends Component {
     }
 }; ?>
 
-<section class="w-full max-w-3xl">
-    <div class="flex items-center gap-4 mb-6">
-        <flux:button :href="route('vehiculos.index')" variant="ghost" icon="arrow-left" wire:navigate />
-        <div>
-            <flux:heading size="xl">{{ $editingId ? __('Editar vehículo') : __('Nuevo vehículo') }}</flux:heading>
-        </div>
-    </div>
+<section class="w-full max-w-4xl mx-auto p-6 lg:p-8">
+    <x-ui.page-header
+        :title="$editingId ? __('Editar vehículo') : __('Nuevo vehículo')"
+        :subtitle="$editingId ? __('Actualiza los datos del vehículo') : __('Registra un nuevo vehículo en la flota')"
+        :breadcrumbs="[
+            ['label' => __('Dashboard'), 'href' => route('dashboard')],
+            ['label' => __('Vehículos'), 'href' => route('vehiculos.index')],
+            ['label' => $editingId ? __('Editar') : __('Nuevo')],
+        ]"
+    >
+        <x-slot:actions>
+            <flux:button :href="route('vehiculos.index')" variant="ghost" icon="arrow-left" wire:navigate>
+                {{ __('Volver') }}
+            </flux:button>
+        </x-slot:actions>
+    </x-ui.page-header>
 
     <form wire:submit="save" class="space-y-8">
 
@@ -310,7 +319,7 @@ new #[Title('Vehículo')] class extends Component {
             <flux:separator />
 
             @if ($this->conductores->isEmpty())
-                <flux:callout color="zinc" icon="user-slash">
+                <flux:callout color="zinc" icon="user-minus">
                     <flux:callout.text>
                         {{ __('No hay conductores registrados disponibles. Registra conductores desde el módulo de conductores.') }}
                     </flux:callout.text>

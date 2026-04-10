@@ -36,12 +36,12 @@ return [
     |---------------------------------------------------------------------------
     | Temporary File Uploads
     |---------------------------------------------------------------------------
-    | disk = 'wasabi' → Livewire genera presigned URLs de Wasabi (S3-compatible).
+    | disk = 'cloud' → Livewire genera presigned URLs del bucket S3-compatible.
     | El browser sube el archivo DIRECTAMENTE al bucket, sin pasar por PHP.
     | Esto elimina el límite de 12 MB y cualquier restricción de upload_max_filesize.
     */
     'temporary_file_upload' => [
-        'disk' => env('LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK', 'wasabi'),
+        'disk' => env('LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK', 'cloud'),
         'rules' => null,
         'directory' => 'livewire-tmp',
         'middleware' => null,

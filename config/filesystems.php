@@ -60,19 +60,32 @@ return [
             'report' => false,
         ],
 
-        'wasabi' => [
+        'cloud' => [
             'driver' => 's3',
-            'key' => env('WASABI_ACCESS_KEY_ID'),
-            'secret' => env('WASABI_SECRET_ACCESS_KEY'),
-            'region' => env('WASABI_DEFAULT_REGION', 'us-east-1'),
-            'bucket' => env('WASABI_BUCKET', 'selcosilaravel'),
-            'endpoint' => env('WASABI_ENDPOINT', 'https://s3.wasabisys.com'),
-            'use_path_style_endpoint' => false,
+            'key' => env('CLOUD_ACCESS_KEY_ID'),
+            'secret' => env('CLOUD_SECRET_ACCESS_KEY'),
+            'region' => env('CLOUD_DEFAULT_REGION', 'us-east-1'),
+            'bucket' => env('CLOUD_BUCKET'),
+            'endpoint' => env('CLOUD_ENDPOINT'),
+            'use_path_style_endpoint' => env('CLOUD_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => true,
             'report' => false,
         ],
 
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cloud Filesystem Disk
+    |--------------------------------------------------------------------------
+    |
+    | Many applications store files both locally and in the cloud. For this
+    | reason, you may specify a default "cloud" filesystem disk that will
+    | be used when working with cloud-backed storage like S3, Laravel Cloud, etc.
+    |
+    */
+
+    'cloud' => env('FILESYSTEM_CLOUD', 'cloud'),
 
     /*
     |--------------------------------------------------------------------------

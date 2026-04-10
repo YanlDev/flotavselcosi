@@ -3,7 +3,7 @@
 use App\Models\RegistroCombustible;
 use App\Models\Sucursal;
 use App\Models\Vehiculo;
-use App\Services\WasabiService;
+use App\Services\StorageService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -34,6 +34,18 @@ new #[Title('Combustible')] class extends Component {
     public function updatedSearch(): void { $this->resetPage(); }
     public function updatedFilterEstado(): void { $this->resetPage(); }
     public function updatedFilterSucursal(): void { $this->resetPage(); }
+
+    public function clearFilters(): void
+    {
+        $this->reset(['search', 'filterEstado', 'filterSucursal']);
+        $this->resetPage();
+    }
+
+    #[Computed]
+    public function hasActiveFilters(): bool
+    {
+        return $this->search !== '' || $this->filterEstado !== '' || $this->filterSucursal !== '';
+    }
 
     #[Computed]
     public function registros(): \Illuminate\Pagination\LengthAwarePaginator
@@ -78,7 +90,7 @@ new #[Title('Combustible')] class extends Component {
         $this->showCrearModal = true;
     }
 
-    public function guardar(WasabiService $wasabi): void
+    public function guardar(StorageService $storage): void
     {
         abort_unless(
             auth()->user()->esAdmin() || auth()->user()->esJefeResguardo(),
@@ -99,8 +111,8 @@ new #[Title('Combustible')] class extends Component {
             abort_unless($vehiculo->sucursal_id === auth()->user()->sucursal_id, 403);
         }
 
-        $facturaKey  = $wasabi->upload($this->fotoFactura, "combustible/{$vehiculo->id}/facturas");
-        $odometroKey = $wasabi->upload($this->fotoOdometro, "combustible/{$vehiculo->id}/odometros");
+        $facturaKey  = $storage->upload($this->fotoFactura, "combustible/{$vehiculo->id}/facturas");
+        $odometroKey = $storage->upload($this->fotoOdometro, "combustible/{$vehiculo->id}/odometros");
 
         RegistroCombustible::create([
             'vehiculo_id'         => $vehiculo->id,
@@ -137,22 +149,24 @@ new #[Title('Combustible')] class extends Component {
     }
 }; ?>
 
-<section class="w-full">
+<section class="w-full p-6 lg:p-8">
 
-    {{-- Encabezado --}}
-    <div class="mb-6 flex items-center justify-between gap-4">
-        <div>
-            <flux:heading size="xl">{{ __('Combustible') }}</flux:heading>
-            <flux:text class="hidden sm:block">{{ __('Registro de cargas de combustible.') }}</flux:text>
-        </div>
-
+    <x-ui.page-header
+        :title="__('Combustible')"
+        :subtitle="__('Registro de cargas de combustible')"
+        :breadcrumbs="[
+            ['label' => __('Dashboard'), 'href' => route('dashboard')],
+            ['label' => __('Combustible')],
+        ]"
+    >
         @if (auth()->user()->esAdmin() || auth()->user()->esJefeResguardo())
-            <flux:button variant="primary" icon="plus" wire:click="abrirCrear">
-                <span class="hidden sm:inline">{{ __('Nueva carga') }}</span>
-                <span class="sm:hidden">{{ __('Nueva') }}</span>
-            </flux:button>
+            <x-slot:actions>
+                <flux:button variant="primary" icon="plus" wire:click="abrirCrear">
+                    {{ __('Nueva carga') }}
+                </flux:button>
+            </x-slot:actions>
         @endif
-    </div>
+    </x-ui.page-header>
 
     {{-- Filtros --}}
     <div class="mb-4 space-y-2 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-3">
@@ -180,10 +194,16 @@ new #[Title('Combustible')] class extends Component {
                 @endforeach
             </flux:select>
         @endif
+
+        @if ($this->hasActiveFilters)
+            <flux:button wire:click="clearFilters" variant="ghost" size="sm" icon="x-mark" class="self-center">
+                {{ __('Limpiar') }}
+            </flux:button>
+        @endif
     </div>
 
     {{-- Tabla desktop --}}
-    <div class="hidden sm:block overflow-x-auto">
+    <div class="hidden sm:block overflow-hidden rounded-xl border border-slate-200 bg-white px-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <flux:table :paginate="$this->registros">
             <flux:table.columns>
                 <flux:table.column>{{ __('Vehículo') }}</flux:table.column>
@@ -201,27 +221,25 @@ new #[Title('Combustible')] class extends Component {
                     <flux:table.row :key="$registro->id">
                         <flux:table.cell>
                             <div>
-                                <p class="font-mono font-semibold text-sm">{{ $registro->vehiculo?->placa ?? '—' }}</p>
-                                <p class="text-xs text-zinc-500">
+                                <p class="font-mono-data text-sm font-semibold text-slate-900 dark:text-white">{{ $registro->vehiculo?->placa ?? '—' }}</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
                                     {{ $registro->vehiculo?->marca }} {{ $registro->vehiculo?->modelo }}
                                 </p>
                             </div>
                         </flux:table.cell>
 
                         @if (auth()->user()->esAdmin())
-                            <flux:table.cell class="text-sm">{{ $registro->sucursal?->nombre ?? '—' }}</flux:table.cell>
+                            <flux:table.cell class="text-sm text-slate-600 dark:text-slate-300">{{ $registro->sucursal?->nombre ?? '—' }}</flux:table.cell>
                         @endif
 
-                        <flux:table.cell class="text-sm">{{ $registro->enviadoPor?->name ?? '—' }}</flux:table.cell>
+                        <flux:table.cell class="text-sm text-slate-600 dark:text-slate-300">{{ $registro->enviadoPor?->name ?? '—' }}</flux:table.cell>
 
-                        <flux:table.cell class="text-sm text-zinc-500">
+                        <flux:table.cell class="font-mono-data text-sm text-slate-500 dark:text-slate-400">
                             {{ $registro->created_at->format('d/m/Y') }}
                         </flux:table.cell>
 
                         <flux:table.cell>
-                            <flux:badge :color="$this->estadoBadgeColor($registro->estado)" size="sm">
-                                {{ $this->estadoLabel($registro->estado) }}
-                            </flux:badge>
+                            <x-ui.badge-status :status="$registro->estado" :label="$this->estadoLabel($registro->estado)" />
                         </flux:table.cell>
 
                         <flux:table.cell>
@@ -244,32 +262,30 @@ new #[Title('Combustible')] class extends Component {
             <a
                 href="{{ route('combustible.show', $registro) }}"
                 wire:navigate
-                class="block rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-4"
+                class="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-brand-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-700"
             >
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="font-mono font-bold text-base">
+                            <span class="font-mono-data text-base font-bold text-slate-900 dark:text-white">
                                 {{ $registro->vehiculo?->placa ?? '—' }}
                             </span>
-                            <flux:badge :color="$this->estadoBadgeColor($registro->estado)" size="sm">
-                                {{ $this->estadoLabel($registro->estado) }}
-                            </flux:badge>
+                            <x-ui.badge-status :status="$registro->estado" :label="$this->estadoLabel($registro->estado)" />
                         </div>
-                        <p class="mt-0.5 text-sm text-zinc-500">
+                        <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
                             {{ $registro->vehiculo?->marca }} {{ $registro->vehiculo?->modelo }}
                         </p>
-                        <p class="mt-0.5 text-xs text-zinc-400">
+                        <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
                             {{ $registro->enviadoPor?->name }} · {{ $registro->created_at->format('d/m/Y') }}
                         </p>
                         @if (auth()->user()->esAdmin() && $registro->sucursal)
-                            <p class="mt-0.5 text-xs text-zinc-400">
+                            <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
                                 <flux:icon name="building-office" class="inline size-3 mr-0.5" />
                                 {{ $registro->sucursal->nombre }}
                             </p>
                         @endif
                     </div>
-                    <flux:icon name="chevron-right" class="size-5 shrink-0 text-zinc-400 mt-0.5" />
+                    <flux:icon name="chevron-right" class="size-5 shrink-0 text-slate-400 mt-0.5" />
                 </div>
             </a>
         @endforeach
@@ -283,9 +299,12 @@ new #[Title('Combustible')] class extends Component {
 
     {{-- Vacío --}}
     @if ($this->registros->isEmpty())
-        <div class="py-16 text-center">
-            <flux:icon name="fire" class="mx-auto mb-3 size-10 text-zinc-300 dark:text-zinc-600" />
-            <flux:text>{{ __('No se encontraron registros de combustible.') }}</flux:text>
+        <div class="mt-4 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+            <x-ui.empty-state
+                icon="fire"
+                :title="__('No se encontraron registros')"
+                :description="__('Ajusta los filtros o registra una nueva carga.')"
+            />
         </div>
     @endif
 

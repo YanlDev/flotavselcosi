@@ -31,6 +31,18 @@ new #[Title('Vehículos')] class extends Component {
     public function updatedFilterTipo(): void { $this->resetPage(); }
     public function updatedFilterSucursal(): void { $this->resetPage(); }
 
+    public function clearFilters(): void
+    {
+        $this->reset(['search', 'filterEstado', 'filterTipo', 'filterSucursal']);
+        $this->resetPage();
+    }
+
+    #[Computed]
+    public function hasActiveFilters(): bool
+    {
+        return $this->search !== '' || $this->filterEstado !== '' || $this->filterTipo !== '' || $this->filterSucursal !== '';
+    }
+
     #[Computed]
     public function vehiculos(): \Illuminate\Pagination\LengthAwarePaginator
     {
@@ -100,21 +112,24 @@ new #[Title('Vehículos')] class extends Component {
     }
 }; ?>
 
-<section class="w-full">
+<section class="w-full p-6 lg:p-8">
 
-    {{-- Encabezado --}}
-    <div class="mb-6 flex items-center justify-between gap-4">
-        <div>
-            <flux:heading size="xl">{{ __('Vehículos') }}</flux:heading>
-            <flux:text class="hidden sm:block">{{ __('Gestiona la flota de vehículos.') }}</flux:text>
-        </div>
+    <x-ui.page-header
+        :title="__('Vehículos')"
+        :subtitle="__('Gestiona la flota de vehículos')"
+        :breadcrumbs="[
+            ['label' => __('Dashboard'), 'href' => route('dashboard')],
+            ['label' => __('Vehículos')],
+        ]"
+    >
         @if (auth()->user()->esAdmin())
-            <flux:button :href="route('vehiculos.crear')" variant="primary" icon="plus" wire:navigate>
-                <span class="hidden sm:inline">{{ __('Nuevo vehículo') }}</span>
-                <span class="sm:hidden">{{ __('Nuevo') }}</span>
-            </flux:button>
+            <x-slot:actions>
+                <flux:button :href="route('vehiculos.crear')" variant="primary" icon="plus" wire:navigate>
+                    {{ __('Nuevo vehículo') }}
+                </flux:button>
+            </x-slot:actions>
         @endif
-    </div>
+    </x-ui.page-header>
 
     {{-- Filtros --}}
     <div class="mb-4 space-y-2 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-3">
@@ -155,10 +170,16 @@ new #[Title('Vehículos')] class extends Component {
                 @endforeach
             </flux:select>
         @endif
+
+        @if ($this->hasActiveFilters)
+            <flux:button wire:click="clearFilters" variant="ghost" size="sm" icon="x-mark" class="self-center">
+                {{ __('Limpiar') }}
+            </flux:button>
+        @endif
     </div>
 
     {{-- Tabla desktop --}}
-    <div class="hidden sm:block overflow-x-auto">
+    <div class="hidden sm:block overflow-hidden rounded-xl border border-slate-200 bg-white px-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <flux:table :paginate="$this->vehiculos">
             <flux:table.columns>
                 <flux:table.column>{{ __('Vehículo') }}</flux:table.column>
@@ -176,25 +197,25 @@ new #[Title('Vehículos')] class extends Component {
                     <flux:table.row :key="$vehiculo->id">
                         <flux:table.cell>
                             <div>
-                                <p class="font-mono font-semibold text-sm">{{ $vehiculo->placa }}</p>
-                                <p class="text-xs text-zinc-500">{{ $vehiculo->marca }} {{ $vehiculo->modelo }} · {{ $vehiculo->anio }}</p>
+                                <p class="font-mono-data text-sm font-semibold text-slate-900 dark:text-white">{{ $vehiculo->placa }}</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">{{ $vehiculo->marca }} {{ $vehiculo->modelo }} · {{ $vehiculo->anio }}</p>
                             </div>
                         </flux:table.cell>
 
                         <flux:table.cell>
-                            <flux:badge color="zinc" size="sm">{{ $this->tipoLabel($vehiculo->tipo) }}</flux:badge>
+                            <span class="inline-flex rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                {{ $this->tipoLabel($vehiculo->tipo) }}
+                            </span>
                         </flux:table.cell>
 
                         @if (auth()->user()->esAdmin())
-                            <flux:table.cell class="text-sm">{{ $vehiculo->sucursal?->nombre ?? '—' }}</flux:table.cell>
+                            <flux:table.cell class="text-sm text-slate-600 dark:text-slate-300">{{ $vehiculo->sucursal?->nombre ?? '—' }}</flux:table.cell>
                         @endif
 
-                        <flux:table.cell class="text-sm">{{ $vehiculo->conductor_nombre ?? '—' }}</flux:table.cell>
+                        <flux:table.cell class="text-sm text-slate-600 dark:text-slate-300">{{ $vehiculo->conductor_nombre ?? '—' }}</flux:table.cell>
 
                         <flux:table.cell>
-                            <flux:badge :color="$this->estadoBadgeColor($vehiculo->estado)" size="sm">
-                                {{ $this->estadoLabel($vehiculo->estado) }}
-                            </flux:badge>
+                            <x-ui.badge-status :status="$vehiculo->estado" :label="$this->estadoLabel($vehiculo->estado)" />
                         </flux:table.cell>
 
                         <flux:table.cell>
@@ -229,26 +250,24 @@ new #[Title('Vehículos')] class extends Component {
     {{-- Cards mobile --}}
     <div class="sm:hidden space-y-3">
         @foreach ($this->vehiculos as $vehiculo)
-            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-4">
+            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="font-mono font-bold text-base">{{ $vehiculo->placa }}</span>
-                            <flux:badge :color="$this->estadoBadgeColor($vehiculo->estado)" size="sm">
-                                {{ $this->estadoLabel($vehiculo->estado) }}
-                            </flux:badge>
+                            <span class="font-mono-data text-base font-bold text-slate-900 dark:text-white">{{ $vehiculo->placa }}</span>
+                            <x-ui.badge-status :status="$vehiculo->estado" :label="$this->estadoLabel($vehiculo->estado)" />
                         </div>
-                        <p class="mt-0.5 text-sm text-zinc-500">
+                        <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
                             {{ $vehiculo->marca }} {{ $vehiculo->modelo }} · {{ $vehiculo->anio }}
                         </p>
                         @if ($vehiculo->conductor_nombre)
-                            <p class="mt-0.5 text-xs text-zinc-400">
+                            <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
                                 <flux:icon name="user" class="inline size-3 mr-0.5" />
                                 {{ $vehiculo->conductor_nombre }}
                             </p>
                         @endif
                         @if (auth()->user()->esAdmin() && $vehiculo->sucursal)
-                            <p class="mt-0.5 text-xs text-zinc-400">
+                            <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
                                 <flux:icon name="building-office" class="inline size-3 mr-0.5" />
                                 {{ $vehiculo->sucursal->nombre }}
                             </p>
@@ -290,9 +309,12 @@ new #[Title('Vehículos')] class extends Component {
 
     {{-- Vacío --}}
     @if ($this->vehiculos->isEmpty())
-        <div class="py-16 text-center">
-            <flux:icon name="truck" class="mx-auto mb-3 size-10 text-zinc-300 dark:text-zinc-600" />
-            <flux:text>{{ __('No se encontraron vehículos.') }}</flux:text>
+        <div class="mt-4 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+            <x-ui.empty-state
+                icon="truck"
+                :title="__('No se encontraron vehículos')"
+                :description="__('Ajusta los filtros o crea un nuevo vehículo.')"
+            />
         </div>
     @endif
 

@@ -86,44 +86,42 @@ new #[Title('Alertas')] class extends Component {
     }
 }; ?>
 
-<section class="w-full space-y-6">
+<section class="w-full space-y-6 p-6 lg:p-8">
 
-    {{-- Encabezado --}}
-    <div>
-        <flux:heading size="xl">{{ __('Alertas') }}</flux:heading>
-        <flux:text>
-            {{ __('Documentos, mantenimientos y licencias que requieren atención.') }}
-            @if (! auth()->user()->esAdmin() && auth()->user()->sucursal)
-                — {{ auth()->user()->sucursal->nombre }}
-            @endif
-        </flux:text>
-    </div>
+    <x-ui.page-header
+        :title="__('Alertas')"
+        :subtitle="__('Documentos, mantenimientos y licencias que requieren atención') . (! auth()->user()->esAdmin() && auth()->user()->sucursal ? ' — ' . auth()->user()->sucursal->nombre : '')"
+        :breadcrumbs="[
+            ['label' => __('Dashboard'), 'href' => route('dashboard')],
+            ['label' => __('Alertas')],
+        ]"
+    />
 
     {{-- Resumen badges --}}
-    <div class="grid grid-cols-3 gap-3">
+    <div class="grid grid-cols-3 gap-2 sm:gap-3">
 
         <button
             wire:click="$set('tab', 'documentos')"
             @class([
-                'rounded-xl border p-4 text-left transition-colors',
+                'rounded-xl border p-3 text-center transition-colors sm:p-4 sm:text-left',
                 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950' => $tab === 'documentos',
                 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/50' => $tab !== 'documentos',
             ])
         >
-            <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center justify-center gap-2 sm:justify-between">
                 <flux:icon name="document-text" @class([
                     'size-5',
                     'text-amber-500' => $this->documentos->isNotEmpty(),
                     'text-zinc-400' => $this->documentos->isEmpty(),
                 ]) />
                 @if ($this->documentos->isNotEmpty())
-                    <flux:badge color="amber" size="sm">{{ $this->documentos->count() }}</flux:badge>
+                    <flux:badge color="amber" size="sm" class="hidden sm:inline-flex">{{ $this->documentos->count() }}</flux:badge>
                 @endif
             </div>
             <p class="mt-2 text-2xl font-bold {{ $this->documentos->isNotEmpty() ? 'text-amber-700 dark:text-amber-300' : 'text-zinc-700 dark:text-zinc-300' }}">
                 {{ $this->documentos->count() }}
             </p>
-            <p class="text-xs {{ $this->documentos->isNotEmpty() ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500' }}">
+            <p class="truncate text-[11px] sm:text-xs {{ $this->documentos->isNotEmpty() ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500' }}">
                 {{ __('Documentos') }}
             </p>
         </button>
@@ -131,51 +129,52 @@ new #[Title('Alertas')] class extends Component {
         <button
             wire:click="$set('tab', 'mantenimientos')"
             @class([
-                'rounded-xl border p-4 text-left transition-colors',
+                'rounded-xl border p-3 text-center transition-colors sm:p-4 sm:text-left',
                 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950' => $tab === 'mantenimientos',
                 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/50' => $tab !== 'mantenimientos',
             ])
         >
-            <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center justify-center gap-2 sm:justify-between">
                 <flux:icon name="wrench-screwdriver" @class([
                     'size-5',
                     'text-amber-500' => $this->mantenimientos->isNotEmpty(),
                     'text-zinc-400' => $this->mantenimientos->isEmpty(),
                 ]) />
                 @if ($this->mantenimientos->isNotEmpty())
-                    <flux:badge color="amber" size="sm">{{ $this->mantenimientos->count() }}</flux:badge>
+                    <flux:badge color="amber" size="sm" class="hidden sm:inline-flex">{{ $this->mantenimientos->count() }}</flux:badge>
                 @endif
             </div>
             <p class="mt-2 text-2xl font-bold {{ $this->mantenimientos->isNotEmpty() ? 'text-amber-700 dark:text-amber-300' : 'text-zinc-700 dark:text-zinc-300' }}">
                 {{ $this->mantenimientos->count() }}
             </p>
-            <p class="text-xs {{ $this->mantenimientos->isNotEmpty() ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500' }}">
-                {{ __('Mantenimientos') }}
+            <p class="truncate text-[11px] sm:text-xs {{ $this->mantenimientos->isNotEmpty() ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500' }}">
+                {{ __('Mantenim.') }}
+                <span class="hidden sm:inline">{{ __('ientos') }}</span>
             </p>
         </button>
 
         <button
             wire:click="$set('tab', 'licencias')"
             @class([
-                'rounded-xl border p-4 text-left transition-colors',
+                'rounded-xl border p-3 text-center transition-colors sm:p-4 sm:text-left',
                 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950' => $tab === 'licencias',
                 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/50' => $tab !== 'licencias',
             ])
         >
-            <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center justify-center gap-2 sm:justify-between">
                 <flux:icon name="identification" @class([
                     'size-5',
                     'text-amber-500' => $this->licencias->isNotEmpty(),
                     'text-zinc-400' => $this->licencias->isEmpty(),
                 ]) />
                 @if ($this->licencias->isNotEmpty())
-                    <flux:badge color="amber" size="sm">{{ $this->licencias->count() }}</flux:badge>
+                    <flux:badge color="amber" size="sm" class="hidden sm:inline-flex">{{ $this->licencias->count() }}</flux:badge>
                 @endif
             </div>
             <p class="mt-2 text-2xl font-bold {{ $this->licencias->isNotEmpty() ? 'text-amber-700 dark:text-amber-300' : 'text-zinc-700 dark:text-zinc-300' }}">
                 {{ $this->licencias->count() }}
             </p>
-            <p class="text-xs {{ $this->licencias->isNotEmpty() ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500' }}">
+            <p class="truncate text-[11px] sm:text-xs {{ $this->licencias->isNotEmpty() ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500' }}">
                 {{ __('Licencias') }}
             </p>
         </button>
@@ -192,7 +191,7 @@ new #[Title('Alertas')] class extends Component {
             </h2>
 
             @if ($this->documentos->isNotEmpty())
-                <div class="overflow-x-auto hidden sm:block">
+                <div class="overflow-x-auto hidden sm:block rounded-xl border border-slate-200 bg-white px-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                     <flux:table>
                         <flux:table.columns>
                             <flux:table.column>{{ __('Vehículo') }}</flux:table.column>
@@ -326,7 +325,7 @@ new #[Title('Alertas')] class extends Component {
             </flux:text>
 
             @if ($this->mantenimientos->isNotEmpty())
-                <div class="overflow-x-auto hidden sm:block">
+                <div class="overflow-x-auto hidden sm:block rounded-xl border border-slate-200 bg-white px-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                     <flux:table>
                         <flux:table.columns>
                             <flux:table.column>{{ __('Vehículo') }}</flux:table.column>
@@ -492,7 +491,7 @@ new #[Title('Alertas')] class extends Component {
             </h2>
 
             @if ($this->licencias->isNotEmpty())
-                <div class="overflow-x-auto hidden sm:block">
+                <div class="overflow-x-auto hidden sm:block rounded-xl border border-slate-200 bg-white px-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                     <flux:table>
                         <flux:table.columns>
                             <flux:table.column>{{ __('Conductor') }}</flux:table.column>

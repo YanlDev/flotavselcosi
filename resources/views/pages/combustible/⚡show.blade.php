@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\RegistroCombustible;
-use App\Services\WasabiService;
+use App\Services\StorageService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -82,7 +82,7 @@ new #[Title('Detalle de carga')] class extends Component {
         }
     }
 
-    public function verFoto(string $campo, WasabiService $wasabi): void
+    public function verFoto(string $campo, StorageService $storage): void
     {
         $key = match ($campo) {
             'factura'  => $this->registroCombustible->foto_factura_key,
@@ -92,7 +92,7 @@ new #[Title('Detalle de carga')] class extends Component {
 
         abort_unless($key, 404);
 
-        $this->previewUrl    = $wasabi->temporaryUrl($key);
+        $this->previewUrl    = $storage->temporaryUrl($key);
         $this->previewMime   = str_ends_with($key, '.pdf') ? 'application/pdf' : 'image/jpeg';
         $this->previewNombre = $campo === 'factura' ? 'Factura' : 'Odómetro';
 
@@ -191,35 +191,24 @@ new #[Title('Detalle de carga')] class extends Component {
 }; ?>
 
 <div
-    class="w-full space-y-6"
+    class="w-full p-6 lg:p-8"
     x-data="{ show: false, url: '', mime: '', nombre: '' }"
     x-on:abrir-preview-combustible.window="show = true; url = $event.detail.url; mime = $event.detail.mime; nombre = $event.detail.nombre"
 >
 
-    {{-- Breadcrumb / Encabezado --}}
-    <div class="flex items-center gap-3">
-        <flux:button
-            :href="route('combustible.index')"
-            variant="subtle"
-            icon="arrow-left"
-            size="sm"
-            wire:navigate
-        />
-        <div>
-            <flux:heading size="xl">{{ __('Carga de combustible') }}</flux:heading>
-            <flux:text class="text-sm">
-                {{ $registroCombustible->vehiculo?->placa }} —
-                {{ $registroCombustible->created_at->format('d/m/Y H:i') }}
-            </flux:text>
-        </div>
-        <flux:spacer />
-        <flux:badge
-            :color="$this->estadoBadgeColor($registroCombustible->estado)"
-            size="lg"
-        >
-            {{ ucfirst($registroCombustible->estado) }}
-        </flux:badge>
-    </div>
+    <x-ui.page-header
+        :title="__('Carga de combustible')"
+        :subtitle="($registroCombustible->vehiculo?->placa ?? '—') . ' — ' . $registroCombustible->created_at->format('d/m/Y H:i')"
+        :breadcrumbs="[
+            ['label' => __('Dashboard'), 'href' => route('dashboard')],
+            ['label' => __('Combustible'), 'href' => route('combustible.index')],
+            ['label' => __('Detalle')],
+        ]"
+    >
+        <x-slot:actions>
+            <x-ui.badge-status :status="$registroCombustible->estado" />
+        </x-slot:actions>
+    </x-ui.page-header>
 
     <div class="grid gap-6 lg:grid-cols-2">
 
@@ -227,37 +216,35 @@ new #[Title('Detalle de carga')] class extends Component {
         <div class="space-y-4">
 
             {{-- Datos del vehículo --}}
-            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-5 space-y-3">
-                <flux:heading size="sm">{{ __('Vehículo') }}</flux:heading>
+            <x-ui.section-card :title="__('Vehículo')">
                 <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                    <dt class="text-zinc-500">{{ __('Placa') }}</dt>
-                    <dd class="font-mono font-semibold">{{ $registroCombustible->vehiculo?->placa ?? '—' }}</dd>
+                    <dt class="text-slate-500 dark:text-slate-400">{{ __('Placa') }}</dt>
+                    <dd class="font-mono-data font-semibold text-slate-900 dark:text-white">{{ $registroCombustible->vehiculo?->placa ?? '—' }}</dd>
 
-                    <dt class="text-zinc-500">{{ __('Marca / Modelo') }}</dt>
-                    <dd>{{ $registroCombustible->vehiculo?->marca }} {{ $registroCombustible->vehiculo?->modelo }}</dd>
+                    <dt class="text-slate-500 dark:text-slate-400">{{ __('Marca / Modelo') }}</dt>
+                    <dd class="text-slate-900 dark:text-white">{{ $registroCombustible->vehiculo?->marca }} {{ $registroCombustible->vehiculo?->modelo }}</dd>
 
                     @if (auth()->user()->esAdmin())
-                        <dt class="text-zinc-500">{{ __('Sucursal') }}</dt>
-                        <dd>{{ $registroCombustible->sucursal?->nombre ?? '—' }}</dd>
+                        <dt class="text-slate-500 dark:text-slate-400">{{ __('Sucursal') }}</dt>
+                        <dd class="text-slate-900 dark:text-white">{{ $registroCombustible->sucursal?->nombre ?? '—' }}</dd>
                     @endif
 
-                    <dt class="text-zinc-500">{{ __('Enviado por') }}</dt>
-                    <dd>{{ $registroCombustible->enviadoPor?->name ?? '—' }}</dd>
+                    <dt class="text-slate-500 dark:text-slate-400">{{ __('Enviado por') }}</dt>
+                    <dd class="text-slate-900 dark:text-white">{{ $registroCombustible->enviadoPor?->name ?? '—' }}</dd>
 
-                    <dt class="text-zinc-500">{{ __('Fecha envío') }}</dt>
-                    <dd>{{ $registroCombustible->created_at->format('d/m/Y H:i') }}</dd>
+                    <dt class="text-slate-500 dark:text-slate-400">{{ __('Fecha envío') }}</dt>
+                    <dd class="font-mono-data text-slate-900 dark:text-white">{{ $registroCombustible->created_at->format('d/m/Y H:i') }}</dd>
                 </dl>
 
                 @if ($registroCombustible->observaciones_envio)
-                    <div class="mt-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400">
+                    <div class="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                         {{ $registroCombustible->observaciones_envio }}
                     </div>
                 @endif
-            </div>
+            </x-ui.section-card>
 
             {{-- Fotos --}}
-            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-5 space-y-3">
-                <flux:heading size="sm">{{ __('Fotos adjuntas') }}</flux:heading>
+            <x-ui.section-card :title="__('Fotos adjuntas')">
                 <div class="grid grid-cols-2 gap-3">
                     <flux:button
                         wire:click="verFoto('factura')"
@@ -276,51 +263,51 @@ new #[Title('Detalle de carga')] class extends Component {
                         {{ __('Ver odómetro') }}
                     </flux:button>
                 </div>
-            </div>
+            </x-ui.section-card>
 
             {{-- Datos aprobados (solo si aprobado) --}}
             @if ($registroCombustible->estado === 'aprobado')
-                <div class="rounded-xl border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 p-5 space-y-3">
-                    <flux:heading size="sm" class="text-green-700 dark:text-green-400">
+                <div class="rounded-xl border border-brand-200 bg-brand-50 p-5 space-y-3 dark:border-brand-800 dark:bg-brand-950/40">
+                    <h3 class="text-sm font-semibold text-brand-700 dark:text-brand-400">
                         {{ __('Datos de la carga') }}
-                    </flux:heading>
+                    </h3>
                     <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                        <dt class="text-zinc-500">{{ __('Fecha carga') }}</dt>
-                        <dd>{{ $registroCombustible->fecha_carga?->format('d/m/Y') ?? '—' }}</dd>
+                        <dt class="text-slate-500 dark:text-slate-400">{{ __('Fecha carga') }}</dt>
+                        <dd class="font-mono-data">{{ $registroCombustible->fecha_carga?->format('d/m/Y') ?? '—' }}</dd>
 
-                        <dt class="text-zinc-500">{{ __('Km al cargar') }}</dt>
-                        <dd>{{ number_format($registroCombustible->km_al_cargar ?? 0) }} km</dd>
+                        <dt class="text-slate-500 dark:text-slate-400">{{ __('Km al cargar') }}</dt>
+                        <dd class="font-mono-data">{{ number_format($registroCombustible->km_al_cargar ?? 0) }} km</dd>
 
-                        <dt class="text-zinc-500">{{ __('Galones') }}</dt>
-                        <dd>{{ $registroCombustible->galones }}</dd>
+                        <dt class="text-slate-500 dark:text-slate-400">{{ __('Galones') }}</dt>
+                        <dd class="font-mono-data">{{ $registroCombustible->galones }}</dd>
 
-                        <dt class="text-zinc-500">{{ __('Precio / galón') }}</dt>
-                        <dd>S/ {{ $registroCombustible->precio_galon }}</dd>
+                        <dt class="text-slate-500 dark:text-slate-400">{{ __('Precio / galón') }}</dt>
+                        <dd class="font-mono-data">S/ {{ $registroCombustible->precio_galon }}</dd>
 
-                        <dt class="text-zinc-500 font-medium">{{ __('Monto total') }}</dt>
-                        <dd class="font-bold text-green-700 dark:text-green-400">
+                        <dt class="text-slate-500 dark:text-slate-400 font-medium">{{ __('Monto total') }}</dt>
+                        <dd class="font-mono-data font-bold text-brand-700 dark:text-brand-400">
                             S/ {{ $registroCombustible->monto_total }}
                         </dd>
 
-                        <dt class="text-zinc-500">{{ __('Tipo') }}</dt>
+                        <dt class="text-slate-500 dark:text-slate-400">{{ __('Tipo') }}</dt>
                         <dd>{{ $this->tipoCombustibleLabel($registroCombustible->tipo_combustible ?? '') }}</dd>
 
                         @if ($registroCombustible->proveedor)
-                            <dt class="text-zinc-500">{{ __('Proveedor') }}</dt>
+                            <dt class="text-slate-500 dark:text-slate-400">{{ __('Proveedor') }}</dt>
                             <dd>{{ $registroCombustible->proveedor }}</dd>
                         @endif
 
                         @if ($registroCombustible->numero_voucher)
-                            <dt class="text-zinc-500">{{ __('Voucher') }}</dt>
-                            <dd class="font-mono">{{ $registroCombustible->numero_voucher }}</dd>
+                            <dt class="text-slate-500 dark:text-slate-400">{{ __('Voucher') }}</dt>
+                            <dd class="font-mono-data">{{ $registroCombustible->numero_voucher }}</dd>
                         @endif
 
-                        <dt class="text-zinc-500">{{ __('Revisado por') }}</dt>
+                        <dt class="text-slate-500 dark:text-slate-400">{{ __('Revisado por') }}</dt>
                         <dd>{{ $registroCombustible->revisadoPor?->name ?? '—' }}</dd>
                     </dl>
 
                     @if ($registroCombustible->observaciones_revision)
-                        <div class="mt-2 rounded-lg bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        <div class="mt-2 rounded-lg bg-white px-3 py-2 text-sm text-slate-600 dark:bg-slate-900 dark:text-slate-400">
                             {{ $registroCombustible->observaciones_revision }}
                         </div>
                     @endif
@@ -329,16 +316,16 @@ new #[Title('Detalle de carga')] class extends Component {
 
             {{-- Rechazado --}}
             @if ($registroCombustible->estado === 'rechazado')
-                <div class="rounded-xl border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950 p-5 space-y-2">
-                    <flux:heading size="sm" class="text-red-700 dark:text-red-400">
+                <div class="rounded-xl border border-red-200 bg-red-50 p-5 space-y-2 dark:border-red-800 dark:bg-red-950/40">
+                    <h3 class="text-sm font-semibold text-red-700 dark:text-red-400">
                         {{ __('Registro rechazado') }}
-                    </flux:heading>
-                    <p class="text-sm text-zinc-500">
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
                         {{ __('Revisado por') }}: {{ $registroCombustible->revisadoPor?->name ?? '—' }}
                         · {{ $registroCombustible->revisado_en?->format('d/m/Y H:i') }}
                     </p>
                     @if ($registroCombustible->observaciones_revision)
-                        <div class="rounded-lg bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        <div class="rounded-lg bg-white px-3 py-2 text-sm text-slate-600 dark:bg-slate-900 dark:text-slate-400">
                             {{ $registroCombustible->observaciones_revision }}
                         </div>
                     @endif
@@ -349,8 +336,7 @@ new #[Title('Detalle de carga')] class extends Component {
 
         {{-- ── Columna derecha: Formulario revisión (admin, pendiente) ── --}}
         @if (auth()->user()->esAdmin() && $registroCombustible->estado === 'pendiente')
-            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-5">
-                <flux:heading size="sm" class="mb-4">{{ __('Completar y aprobar') }}</flux:heading>
+            <x-ui.section-card :title="__('Completar y aprobar')">
 
                 <form wire:submit="aprobar" class="space-y-4">
 
@@ -454,7 +440,7 @@ new #[Title('Detalle de carga')] class extends Component {
                         </flux:button>
                     </div>
                 </form>
-            </div>
+            </x-ui.section-card>
         @endif
 
     </div>

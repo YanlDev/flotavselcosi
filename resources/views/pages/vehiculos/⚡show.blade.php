@@ -69,15 +69,15 @@ new #[Title('Detalle vehículo')] class extends Component {
     public function estadoHeaderColor(): string
     {
         return match ($this->vehiculo->estado) {
-            'operativo' => 'from-emerald-500/10 to-transparent border-emerald-500/20',
+            'operativo' => 'from-brand-500/10 to-transparent border-brand-500/20',
             'parcialmente' => 'from-amber-500/10 to-transparent border-amber-500/20',
             'fuera_de_servicio' => 'from-red-500/10 to-transparent border-red-500/20',
-            default => 'from-zinc-500/10 to-transparent border-zinc-500/20',
+            default => 'from-slate-500/10 to-transparent border-slate-500/20',
         };
     }
 }; ?>
 
-<section class="w-full max-w-5xl mx-auto">
+<section class="w-full max-w-6xl mx-auto p-6 lg:p-8">
 
     {{-- Barra superior --}}
     <div class="mb-4 flex items-center justify-between gap-3">
@@ -126,26 +126,28 @@ new #[Title('Detalle vehículo')] class extends Component {
     </div>
 
     {{-- Hero card --}}
-    <div class="mb-6 rounded-2xl border bg-gradient-to-br {{ $this->estadoHeaderColor() }} p-5 dark:bg-zinc-900">
+    <div class="mb-6 rounded-2xl border bg-gradient-to-br {{ $this->estadoHeaderColor() }} p-6 bg-white dark:bg-slate-900 shadow-sm">
         <div class="flex items-start gap-4">
-            <div class="hidden sm:flex size-14 shrink-0 items-center justify-center rounded-xl bg-white/60 dark:bg-zinc-800/60 shadow-sm">
-                <flux:icon :name="$this->tipoIcon()" class="size-7 text-zinc-600 dark:text-zinc-300" />
+            <div class="hidden sm:flex size-14 shrink-0 items-center justify-center rounded-xl bg-brand-50 ring-1 ring-brand-100 dark:bg-brand-950/40 dark:ring-brand-900">
+                <flux:icon :name="$this->tipoIcon()" class="size-7 text-brand-600 dark:text-brand-400" />
             </div>
 
             <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">
-                    <h1 class="font-mono text-2xl font-bold tracking-wider">{{ $vehiculo->placa }}</h1>
-                    <flux:badge :color="$this->estadoBadgeColor()">{{ $this->estadoLabel() }}</flux:badge>
-                    <flux:badge color="zinc">{{ $this->tipoLabel() }}</flux:badge>
+                    <h1 class="font-mono-data text-2xl font-bold tracking-wider text-slate-900 dark:text-white">{{ $vehiculo->placa }}</h1>
+                    <x-ui.badge-status :status="$vehiculo->estado" :label="$this->estadoLabel()" />
+                    <span class="inline-flex rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        {{ $this->tipoLabel() }}
+                    </span>
                 </div>
 
-                <p class="mt-1 text-sm font-medium text-zinc-600 dark:text-zinc-300">
+                <p class="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">
                     {{ $vehiculo->marca }} {{ $vehiculo->modelo }}
                     @if ($vehiculo->anio) · {{ $vehiculo->anio }} @endif
                     @if ($vehiculo->color) · {{ ucfirst($vehiculo->color) }} @endif
                 </p>
 
-                <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                     @if ($vehiculo->sucursal)
                         <span class="flex items-center gap-1">
                             <flux:icon name="building-office" class="size-3.5" />

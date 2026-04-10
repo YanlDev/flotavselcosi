@@ -49,6 +49,18 @@ new #[Title('Conductores')] class extends Component {
     public function updatedFilterSucursal(): void { $this->resetPage(); }
     public function updatedFilterActivo(): void { $this->resetPage(); }
 
+    public function clearFilters(): void
+    {
+        $this->reset(['search', 'filterSucursal', 'filterActivo']);
+        $this->resetPage();
+    }
+
+    #[Computed]
+    public function hasActiveFilters(): bool
+    {
+        return $this->search !== '' || $this->filterSucursal !== '' || $this->filterActivo !== '';
+    }
+
     #[Computed]
     public function conductores(): \Illuminate\Pagination\LengthAwarePaginator
     {
@@ -183,19 +195,22 @@ new #[Title('Conductores')] class extends Component {
     }
 }; ?>
 
-<section class="w-full">
+<section class="w-full p-6 lg:p-8">
 
-    {{-- Encabezado --}}
-    <div class="mb-6 flex items-center justify-between gap-4">
-        <div>
-            <flux:heading size="xl">{{ __('Conductores') }}</flux:heading>
-            <flux:text class="hidden sm:block">{{ __('Gestión de conductores asignados a la flota.') }}</flux:text>
-        </div>
-        <flux:button variant="primary" icon="plus" wire:click="abrirCrear">
-            <span class="hidden sm:inline">{{ __('Nuevo conductor') }}</span>
-            <span class="sm:hidden">{{ __('Nuevo') }}</span>
-        </flux:button>
-    </div>
+    <x-ui.page-header
+        :title="__('Conductores')"
+        :subtitle="__('Gestión de conductores asignados a la flota')"
+        :breadcrumbs="[
+            ['label' => __('Dashboard'), 'href' => route('dashboard')],
+            ['label' => __('Conductores')],
+        ]"
+    >
+        <x-slot:actions>
+            <flux:button variant="primary" icon="plus" wire:click="abrirCrear">
+                {{ __('Nuevo conductor') }}
+            </flux:button>
+        </x-slot:actions>
+    </x-ui.page-header>
 
     {{-- Filtros --}}
     <div class="mb-4 space-y-2 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-3">
@@ -220,10 +235,16 @@ new #[Title('Conductores')] class extends Component {
             <flux:select.option value="1">{{ __('Activo') }}</flux:select.option>
             <flux:select.option value="0">{{ __('Inactivo') }}</flux:select.option>
         </flux:select>
+
+        @if ($this->hasActiveFilters)
+            <flux:button wire:click="clearFilters" variant="ghost" size="sm" icon="x-mark" class="self-center">
+                {{ __('Limpiar') }}
+            </flux:button>
+        @endif
     </div>
 
     {{-- Tabla desktop --}}
-    <div class="hidden sm:block overflow-x-auto">
+    <div class="hidden sm:block overflow-hidden rounded-xl border border-slate-200 bg-white px-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <flux:table :paginate="$this->conductores">
             <flux:table.columns>
                 <flux:table.column>{{ __('Conductor') }}</flux:table.column>
@@ -248,7 +269,7 @@ new #[Title('Conductores')] class extends Component {
                             </div>
                         </flux:table.cell>
 
-                        <flux:table.cell class="font-mono text-sm">
+                        <flux:table.cell class="font-mono-data text-sm">
                             {{ $conductor->dni }}
                         </flux:table.cell>
 
@@ -258,7 +279,7 @@ new #[Title('Conductores')] class extends Component {
 
                         <flux:table.cell>
                             @if ($conductor->vehiculo)
-                                <span class="font-mono text-sm font-semibold">{{ $conductor->vehiculo->placa }}</span>
+                                <span class="font-mono-data text-sm font-semibold">{{ $conductor->vehiculo->placa }}</span>
                                 <span class="text-xs text-zinc-500 ml-1">
                                     {{ $conductor->vehiculo->marca }} {{ $conductor->vehiculo->modelo }}
                                 </span>
@@ -320,7 +341,7 @@ new #[Title('Conductores')] class extends Component {
     {{-- Cards mobile --}}
     <div class="sm:hidden space-y-3">
         @foreach ($this->conductores as $conductor)
-            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-4">
+            <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 p-4">
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0 flex-1">
                         <div class="flex flex-wrap items-center gap-2">

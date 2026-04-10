@@ -2,7 +2,7 @@
 
 use App\Models\DocumentoVehicular;
 use App\Models\Vehiculo;
-use App\Services\WasabiService;
+use App\Services\StorageService;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -47,7 +47,7 @@ new class extends Component {
         $this->showUploadModal = true;
     }
 
-    public function guardar(WasabiService $wasabi): void
+    public function guardar(StorageService $storage): void
     {
         abort_unless(auth()->user()->esAdmin(), 403);
 
@@ -63,19 +63,7 @@ new class extends Component {
             'observaciones' => ['nullable', 'string'],
         ]);
 
-        $uploadedFile = $this->archivo->getRealPath()
-            ? new \Illuminate\Http\UploadedFile(
-                $this->archivo->getRealPath(),
-                $this->archivo->getClientOriginalName(),
-                $this->archivo->getMimeType(),
-                null,
-                true
-            )
-            : null;
-
-        abort_unless($uploadedFile, 422);
-
-        $key = $wasabi->upload($uploadedFile, "vehiculos/{$this->vehiculo->id}/documentos");
+        $key = $storage->upload($this->archivo, "vehiculos/{$this->vehiculo->id}/documentos");
 
         DocumentoVehicular::create([
             'vehiculo_id' => $this->vehiculo->id,
@@ -93,17 +81,17 @@ new class extends Component {
         $this->showUploadModal = false;
     }
 
-    public function descargar(int $id, WasabiService $wasabi): void
+    public function descargar(int $id, StorageService $storage): void
     {
         $doc = DocumentoVehicular::where('vehiculo_id', $this->vehiculo->id)->findOrFail($id);
-        $url = $wasabi->temporaryUrl($doc->archivo_key);
+        $url = $storage->temporaryUrl($doc->archivo_key);
         $this->dispatch('open-url', url: $url);
     }
 
-    public function previsualizarDocumento(int $id, WasabiService $wasabi): void
+    public function previsualizarDocumento(int $id, StorageService $storage): void
     {
         $doc = DocumentoVehicular::where('vehiculo_id', $this->vehiculo->id)->findOrFail($id);
-        $url = $wasabi->temporaryUrl($doc->archivo_key);
+        $url = $storage->temporaryUrl($doc->archivo_key);
         $this->dispatch('abrir-preview', url: $url, mime: $doc->mime_type, nombre: $doc->nombre);
     }
 
@@ -114,12 +102,12 @@ new class extends Component {
         $this->showDeleteModal = true;
     }
 
-    public function delete(WasabiService $wasabi): void
+    public function delete(StorageService $storage): void
     {
         abort_unless(auth()->user()->esAdmin(), 403);
 
         $doc = DocumentoVehicular::where('vehiculo_id', $this->vehiculo->id)->findOrFail($this->deletingId);
-        $wasabi->delete($doc->archivo_key);
+        $storage->delete($doc->archivo_key);
         $doc->delete();
 
         unset($this->documentos);

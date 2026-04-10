@@ -2,7 +2,7 @@
 
 use App\Models\FotoVehiculo;
 use App\Models\Vehiculo;
-use App\Services\WasabiService;
+use App\Services\StorageService;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -56,7 +56,7 @@ new class extends Component {
         $this->showUploadModal = true;
     }
 
-    public function guardar(WasabiService $wasabi): void
+    public function guardar(StorageService $storage): void
     {
         abort_unless(auth()->user()->esAdmin(), 403);
 
@@ -66,7 +66,7 @@ new class extends Component {
             'descripcion' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $key = $wasabi->upload($this->foto, "vehiculos/{$this->vehiculo->id}/fotos");
+        $key = $storage->upload($this->foto, "vehiculos/{$this->vehiculo->id}/fotos");
 
         FotoVehiculo::create([
             'vehiculo_id' => $this->vehiculo->id,
@@ -80,10 +80,10 @@ new class extends Component {
         $this->showUploadModal = false;
     }
 
-    public function verFoto(int $id, WasabiService $wasabi): void
+    public function verFoto(int $id, StorageService $storage): void
     {
         $foto = FotoVehiculo::where('vehiculo_id', $this->vehiculo->id)->findOrFail($id);
-        $this->previewUrl         = $wasabi->temporaryUrl($foto->key);
+        $this->previewUrl         = $storage->temporaryUrl($foto->key);
         $this->previewDescripcion = $foto->descripcion ?? $this->categoriaLabel($foto->categoria);
         $this->dispatch('abrir-lightbox', url: $this->previewUrl, descripcion: $this->previewDescripcion);
     }
@@ -95,12 +95,12 @@ new class extends Component {
         $this->showDeleteModal = true;
     }
 
-    public function delete(WasabiService $wasabi): void
+    public function delete(StorageService $storage): void
     {
         abort_unless(auth()->user()->esAdmin(), 403);
 
         $foto = FotoVehiculo::where('vehiculo_id', $this->vehiculo->id)->findOrFail($this->deletingId);
-        $wasabi->delete($foto->key);
+        $storage->delete($foto->key);
         $foto->delete();
 
         unset($this->fotosPorCategoria, $this->totalFotos);

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-white dark:bg-zinc-800">
-        <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+    <body class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+        <flux:sidebar sticky collapsible="mobile" class="border-e border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
             <flux:sidebar.header>
                 <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
                 <flux:sidebar.collapse class="lg:hidden" />
@@ -12,7 +12,7 @@
 
             <flux:sidebar.nav>
                 {{-- Principal: accesible para todos los roles --}}
-                <flux:sidebar.group :heading="__('Principal')" class="grid">
+                <flux:sidebar.group :heading="__('OPERACIÓN')" class="grid">
                     <flux:sidebar.item
                         icon="home"
                         :href="route('dashboard')"
@@ -57,7 +57,7 @@
 
                 {{-- Administración: solo admin --}}
                 @if (auth()->user()->esAdmin())
-                    <flux:sidebar.group :heading="__('Administración')" class="grid">
+                    <flux:sidebar.group :heading="__('ADMINISTRACIÓN')" class="grid">
                         <flux:sidebar.item
                             icon="identification"
                             :href="route('conductores.index')"
@@ -103,8 +103,9 @@
         </flux:sidebar>
 
         {{-- Header móvil --}}
-        <flux:header class="lg:hidden">
+        <flux:header class="lg:hidden border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
             <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
+            <x-app-logo href="{{ route('dashboard') }}" wire:navigate />
             <flux:spacer />
             <flux:dropdown position="top" align="end">
                 <flux:profile

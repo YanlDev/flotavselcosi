@@ -2,7 +2,7 @@
 
 use App\Models\RegistroCombustible;
 use App\Models\Vehiculo;
-use App\Services\WasabiService;
+use App\Services\StorageService;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -80,7 +80,7 @@ new class extends Component {
         $this->showCrearModal = true;
     }
 
-    public function guardar(WasabiService $wasabi): void
+    public function guardar(StorageService $storage): void
     {
         abort_unless($this->puedeRegistrar(), 403);
 
@@ -90,8 +90,8 @@ new class extends Component {
             'observacionesEnvio' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $facturaKey  = $wasabi->upload($this->fotoFactura, "combustible/{$this->vehiculo->id}/facturas");
-        $odometroKey = $wasabi->upload($this->fotoOdometro, "combustible/{$this->vehiculo->id}/odometros");
+        $facturaKey  = $storage->upload($this->fotoFactura, "combustible/{$this->vehiculo->id}/facturas");
+        $odometroKey = $storage->upload($this->fotoOdometro, "combustible/{$this->vehiculo->id}/odometros");
 
         RegistroCombustible::create([
             'vehiculo_id'         => $this->vehiculo->id,
