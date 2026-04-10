@@ -86,11 +86,11 @@ new #[Title('Alertas')] class extends Component {
     }
 }; ?>
 
-<section class="w-full space-y-6 p-6 lg:p-8">
+<section class="w-full space-y-6 px-3 py-4 sm:p-6 lg:p-8">
 
     <x-ui.page-header
         :title="__('Alertas')"
-        :subtitle="__('Documentos, mantenimientos y licencias que requieren atención') . (! auth()->user()->esAdmin() && auth()->user()->sucursal ? ' — ' . auth()->user()->sucursal->nombre : '')"
+        :subtitle="__('Documentos, mantenimientos y licencias que requieren atención') . (! auth()->user()->puedeVerTodo() && auth()->user()->sucursal ? ' — ' . auth()->user()->sucursal->nombre : '')"
         :breadcrumbs="[
             ['label' => __('Dashboard'), 'href' => route('dashboard')],
             ['label' => __('Alertas')],
@@ -197,7 +197,7 @@ new #[Title('Alertas')] class extends Component {
                             <flux:table.column>{{ __('Vehículo') }}</flux:table.column>
                             <flux:table.column>{{ __('Tipo') }}</flux:table.column>
                             <flux:table.column>{{ __('Nombre') }}</flux:table.column>
-                            @if (auth()->user()->esAdmin())
+                            @if (auth()->user()->puedeVerTodo())
                                 <flux:table.column>{{ __('Sucursal') }}</flux:table.column>
                             @endif
                             <flux:table.column>{{ __('Vencimiento') }}</flux:table.column>
@@ -223,7 +223,7 @@ new #[Title('Alertas')] class extends Component {
                                     <flux:table.cell class="text-sm">
                                         {{ $doc->nombre }}
                                     </flux:table.cell>
-                                    @if (auth()->user()->esAdmin())
+                                    @if (auth()->user()->puedeVerTodo())
                                         <flux:table.cell class="text-sm">
                                             {{ $doc->vehiculo?->sucursal?->nombre ?? '—' }}
                                         </flux:table.cell>
@@ -289,7 +289,7 @@ new #[Title('Alertas')] class extends Component {
                                     </p>
                                     <p class="mt-0.5 text-xs text-zinc-400">
                                         {{ $doc->vencimiento?->format('d/m/Y') }}
-                                        @if (auth()->user()->esAdmin() && $doc->vehiculo?->sucursal)
+                                        @if (auth()->user()->puedeVerTodo() && $doc->vehiculo?->sucursal)
                                             · {{ $doc->vehiculo->sucursal->nombre }}
                                         @endif
                                     </p>
@@ -330,7 +330,7 @@ new #[Title('Alertas')] class extends Component {
                         <flux:table.columns>
                             <flux:table.column>{{ __('Vehículo') }}</flux:table.column>
                             <flux:table.column>{{ __('Categoría') }}</flux:table.column>
-                            @if (auth()->user()->esAdmin())
+                            @if (auth()->user()->puedeVerTodo())
                                 <flux:table.column>{{ __('Sucursal') }}</flux:table.column>
                             @endif
                             <flux:table.column>{{ __('Próxima fecha') }}</flux:table.column>
@@ -364,7 +364,7 @@ new #[Title('Alertas')] class extends Component {
                                         {{ $this->categoriaMantenimientoLabel($mant->categoria) }}
                                         <span class="block text-xs text-zinc-400">{{ ucfirst($mant->tipo) }}</span>
                                     </flux:table.cell>
-                                    @if (auth()->user()->esAdmin())
+                                    @if (auth()->user()->puedeVerTodo())
                                         <flux:table.cell class="text-sm">
                                             {{ $mant->vehiculo?->sucursal?->nombre ?? '—' }}
                                         </flux:table.cell>
@@ -459,7 +459,7 @@ new #[Title('Alertas')] class extends Component {
                                             </flux:badge>
                                         @endif
                                     </div>
-                                    @if (auth()->user()->esAdmin() && $mant->vehiculo?->sucursal)
+                                    @if (auth()->user()->puedeVerTodo() && $mant->vehiculo?->sucursal)
                                         <p class="mt-1 text-xs text-zinc-400">{{ $mant->vehiculo->sucursal->nombre }}</p>
                                     @endif
                                 </div>
@@ -495,7 +495,7 @@ new #[Title('Alertas')] class extends Component {
                     <flux:table>
                         <flux:table.columns>
                             <flux:table.column>{{ __('Conductor') }}</flux:table.column>
-                            @if (auth()->user()->esAdmin())
+                            @if (auth()->user()->puedeVerTodo())
                                 <flux:table.column>{{ __('Sucursal') }}</flux:table.column>
                             @endif
                             <flux:table.column>{{ __('Categoría') }}</flux:table.column>
@@ -515,7 +515,7 @@ new #[Title('Alertas')] class extends Component {
                                             <p class="text-xs text-zinc-500">{{ $conductor->telefono }}</p>
                                         @endif
                                     </flux:table.cell>
-                                    @if (auth()->user()->esAdmin())
+                                    @if (auth()->user()->puedeVerTodo())
                                         <flux:table.cell class="text-sm">
                                             {{ $conductor->sucursal?->nombre ?? '—' }}
                                         </flux:table.cell>
@@ -571,7 +571,7 @@ new #[Title('Alertas')] class extends Component {
                                     </p>
                                     <p class="mt-0.5 text-xs text-zinc-400">
                                         {{ $conductor->licencia_vencimiento->format('d/m/Y') }}
-                                        @if (auth()->user()->esAdmin() && $conductor->sucursal)
+                                        @if (auth()->user()->puedeVerTodo() && $conductor->sucursal)
                                             · {{ $conductor->sucursal->nombre }}
                                         @endif
                                     </p>

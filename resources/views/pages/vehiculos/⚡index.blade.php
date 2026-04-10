@@ -51,7 +51,7 @@ new #[Title('Vehículos')] class extends Component {
             ->when($this->search, fn ($q) => $q->search($this->search))
             ->when($this->filterEstado, fn ($q) => $q->where('estado', $this->filterEstado))
             ->when($this->filterTipo, fn ($q) => $q->where('tipo', $this->filterTipo))
-            ->when($this->filterSucursal && auth()->user()->esAdmin(), fn ($q) => $q->where('sucursal_id', $this->filterSucursal))
+            ->when($this->filterSucursal && auth()->user()->puedeVerTodo(), fn ($q) => $q->where('sucursal_id', $this->filterSucursal))
             ->orderByDesc('created_at')
             ->paginate(15);
     }
@@ -112,7 +112,7 @@ new #[Title('Vehículos')] class extends Component {
     }
 }; ?>
 
-<section class="w-full p-6 lg:p-8">
+<section class="w-full px-3 py-4 sm:p-6 lg:p-8">
 
     <x-ui.page-header
         :title="__('Vehículos')"
@@ -162,7 +162,7 @@ new #[Title('Vehículos')] class extends Component {
             </flux:select>
         </div>
 
-        @if (auth()->user()->esAdmin())
+        @if (auth()->user()->puedeVerTodo())
             <flux:select wire:model.live="filterSucursal" class="w-full sm:w-44">
                 <flux:select.option value="">{{ __('Sucursal') }}</flux:select.option>
                 @foreach ($this->sucursales as $sucursal)
@@ -184,7 +184,7 @@ new #[Title('Vehículos')] class extends Component {
             <flux:table.columns>
                 <flux:table.column>{{ __('Vehículo') }}</flux:table.column>
                 <flux:table.column>{{ __('Tipo') }}</flux:table.column>
-                @if (auth()->user()->esAdmin())
+                @if (auth()->user()->puedeVerTodo())
                     <flux:table.column>{{ __('Sucursal') }}</flux:table.column>
                 @endif
                 <flux:table.column>{{ __('Conductor') }}</flux:table.column>
@@ -208,7 +208,7 @@ new #[Title('Vehículos')] class extends Component {
                             </span>
                         </flux:table.cell>
 
-                        @if (auth()->user()->esAdmin())
+                        @if (auth()->user()->puedeVerTodo())
                             <flux:table.cell class="text-sm text-slate-600 dark:text-slate-300">{{ $vehiculo->sucursal?->nombre ?? '—' }}</flux:table.cell>
                         @endif
 
@@ -269,7 +269,7 @@ new #[Title('Vehículos')] class extends Component {
                                 {{ $vehiculo->conductor_nombre }}
                             </p>
                         @endif
-                        @if (auth()->user()->esAdmin() && $vehiculo->sucursal)
+                        @if (auth()->user()->puedeVerTodo() && $vehiculo->sucursal)
                             <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
                                 <flux:icon name="building-office" class="inline size-3 mr-0.5" />
                                 {{ $vehiculo->sucursal->nombre }}

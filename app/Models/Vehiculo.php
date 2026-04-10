@@ -71,7 +71,7 @@ class Vehiculo extends Model
     /** Aplica filtro de sucursal según el rol del usuario */
     public function scopeForUser(Builder $query, User $user): Builder
     {
-        if ($user->esAdmin()) {
+        if ($user->puedeVerTodo()) {
             return $query;
         }
 

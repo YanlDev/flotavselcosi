@@ -13,10 +13,10 @@ class VehiculoPolicy
         return true;
     }
 
-    /** Se puede ver si es admin, o si el vehículo pertenece a su sucursal */
+    /** Se puede ver si es admin/visor (ven todo), o si el vehículo pertenece a su sucursal */
     public function view(User $user, Vehiculo $vehiculo): bool
     {
-        if ($user->esAdmin()) {
+        if ($user->puedeVerTodo()) {
             return true;
         }
 

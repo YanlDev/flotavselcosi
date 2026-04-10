@@ -177,41 +177,34 @@ new class extends Component {
                                 loading="lazy"
                             />
 
-                            {{-- Botón para abrir lightbox (sin roundtrip a Livewire) --}}
+                            {{-- Botón para abrir lightbox (cubre toda la foto) --}}
                             <button
                                 type="button"
-                                x-on:click="show = true; url = '{{ route('vehiculos.fotos.original', [$vehiculo, $foto]) }}'; descripcion = '{{ addslashes($foto->descripcion ?? $this->categoriaLabel($foto->categoria)) }}'"
-                                class="absolute inset-0 flex items-center justify-center w-full h-full cursor-zoom-in"
+                                x-on:click.prevent="show = true; url = '{{ route('vehiculos.fotos.original', [$vehiculo, $foto]) }}'; descripcion = '{{ addslashes($foto->descripcion ?? $this->categoriaLabel($foto->categoria)) }}'"
+                                class="absolute inset-0 w-full h-full cursor-zoom-in focus:outline-none"
                             >
                                 <span class="sr-only">{{ __('Ver foto') }}</span>
                             </button>
 
-                            {{-- Overlay acciones --}}
-                            <div class="absolute inset-0 flex flex-col justify-between p-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded-xl">
-                                <div class="flex justify-end">
-                                    @if (auth()->user()->esAdmin())
-                                        <button
-                                            type="button"
-                                            wire:click="confirmDelete({{ $foto->id }})"
-                                            class="rounded-lg bg-red-600/90 p-1.5 text-white hover:bg-red-700"
-                                        >
-                                            <flux:icon name="trash" class="size-3.5" />
-                                        </button>
-                                    @endif
-                                </div>
-                                <div class="flex items-end justify-between gap-1">
-                                    @if ($foto->descripcion)
-                                        <p class="text-xs text-white/90 truncate">{{ $foto->descripcion }}</p>
-                                    @endif
+                            {{-- Botón Eliminar (Siempre visible en móvil, auto en desktop hover) --}}
+                            @if (auth()->user()->esAdmin())
+                                <div class="absolute top-2 right-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200 z-10">
                                     <button
                                         type="button"
-                                        x-on:click="show = true; url = '{{ route('vehiculos.fotos.original', [$vehiculo, $foto]) }}'; descripcion = '{{ addslashes($foto->descripcion ?? $this->categoriaLabel($foto->categoria)) }}'"
-                                        class="shrink-0 rounded-lg bg-white/20 p-1.5 text-white hover:bg-white/30"
+                                        wire:click="confirmDelete({{ $foto->id }})"
+                                        class="rounded-lg bg-red-600/90 p-1.5 text-white hover:bg-red-700 shadow-sm backdrop-blur-md"
                                     >
-                                        <flux:icon name="arrows-pointing-out" class="size-3.5" />
+                                        <flux:icon name="trash" class="size-4" />
                                     </button>
                                 </div>
-                            </div>
+                            @endif
+
+                            {{-- Descripción (si existe) (Siempre visible en móvil, auto en desktop hover) --}}
+                            @if ($foto->descripcion)
+                                <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 pt-6 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                    <p class="text-xs text-white/90 truncate drop-shadow-md">{{ $foto->descripcion }}</p>
+                                </div>
+                            @endif
                         </div>
                     @endforeach
                 </div>

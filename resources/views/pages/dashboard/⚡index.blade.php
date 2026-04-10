@@ -20,7 +20,7 @@ new #[Title('Dashboard')] class extends Component {
         $cacheKey = "dashboard.kpis.{$user->id}";
 
         return Cache::remember($cacheKey, 300, function () use ($user) {
-            $sucursalId = $user->esAdmin() ? null : $user->sucursal_id;
+            $sucursalId = $user->puedeVerTodo() ? null : $user->sucursal_id;
 
             // Flota
             $baseFlota = Vehiculo::when($sucursalId, fn ($q) => $q->where('sucursal_id', $sucursalId));
@@ -74,8 +74,8 @@ new #[Title('Dashboard')] class extends Component {
                 })
                 ->count();
 
-            // Combustible pendiente de revisión (solo admin)
-            $combustiblePendiente = $user->esAdmin()
+            // Combustible pendiente de revisión (admin y visor)
+            $combustiblePendiente = $user->puedeVerTodo()
                 ? RegistroCombustible::where('estado', 'pendiente')->count()
                 : null;
 
@@ -102,7 +102,7 @@ new #[Title('Dashboard')] class extends Component {
     #[Computed]
     public function flotaPorSucursal(): \Illuminate\Database\Eloquent\Collection
     {
-        if (! auth()->user()->esAdmin()) {
+        if (! auth()->user()->puedeVerTodo()) {
             return collect();
         }
 
@@ -120,7 +120,7 @@ new #[Title('Dashboard')] class extends Component {
     #[Computed]
     public function pendientesRecientes(): \Illuminate\Database\Eloquent\Collection
     {
-        if (! auth()->user()->esAdmin()) {
+        if (! auth()->user()->puedeVerTodo()) {
             return collect();
         }
 
@@ -134,7 +134,7 @@ new #[Title('Dashboard')] class extends Component {
     #[Computed]
     public function misEnviosRecientes(): \Illuminate\Database\Eloquent\Collection
     {
-        if (auth()->user()->esAdmin()) {
+        if (auth()->user()->puedeVerTodo()) {
             return collect();
         }
 
@@ -166,15 +166,15 @@ new #[Title('Dashboard')] class extends Component {
     }
 }; ?>
 
-<section class="w-full p-6 lg:p-8">
+<section class="w-full px-3 py-4 sm:p-6 lg:p-8">
 
     <x-ui.page-header
         :title="__('Dashboard')"
-        :subtitle="__('Bienvenido,') . ' ' . auth()->user()->name . (! auth()->user()->esAdmin() && auth()->user()->sucursal ? ' · ' . auth()->user()->sucursal->nombre : '')"
+        :subtitle="__('Bienvenido,') . ' ' . auth()->user()->name . (! auth()->user()->puedeVerTodo() && auth()->user()->sucursal ? ' · ' . auth()->user()->sucursal->nombre : '')"
     />
 
     {{-- Combustible pendiente (solo admin) --}}
-    @if (auth()->user()->esAdmin() && $this->kpis['combustiblePendiente'] > 0)
+    @if (auth()->user()->puedeVerTodo() && $this->kpis['combustiblePendiente'] > 0)
         <div class="mb-6">
             <flux:callout color="amber" icon="clock">
                 <flux:callout.heading>
@@ -295,7 +295,7 @@ new #[Title('Dashboard')] class extends Component {
                                     </div>
                                     <p class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
                                         {{ $vehiculo->marca }} {{ $vehiculo->modelo }}
-                                        @if ($vehiculo->sucursal && auth()->user()->esAdmin())
+                                        @if ($vehiculo->sucursal && auth()->user()->puedeVerTodo())
                                             · {{ $vehiculo->sucursal->nombre }}
                                         @endif
                                     </p>
@@ -313,7 +313,7 @@ new #[Title('Dashboard')] class extends Component {
         </x-ui.section-card>
 
         {{-- Flota por sucursal (admin) o Mis envíos (otros) --}}
-        @if (auth()->user()->esAdmin())
+        @if (auth()->user()->puedeVerTodo())
             <x-ui.section-card :title="__('Flota por sucursal')" :padded="false">
                 @if ($this->flotaPorSucursal->isNotEmpty())
                     <ul class="divide-y divide-slate-100 dark:divide-slate-800">

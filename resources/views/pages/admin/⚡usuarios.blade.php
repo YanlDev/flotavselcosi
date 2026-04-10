@@ -13,6 +13,11 @@ new #[Title('Usuarios')] class extends Component {
     public bool $activo = true;
 
     public bool $showEditModal = false;
+    public bool $showDeleteModal = false;
+    public ?int $deletingId = null;
+
+    public bool $showPasswordModal = false;
+    public string $temporaryPassword = '';
 
     public function mount(): void
     {
@@ -75,6 +80,44 @@ new #[Title('Usuarios')] class extends Component {
         $user->update(['activo' => ! $user->activo]);
     }
 
+    public function resetPassword(User $user): void
+    {
+        abort_unless(auth()->user()->esAdmin(), 403);
+
+        $password = \Illuminate\Support\Str::password(12, symbols: false);
+
+        $user->update(['password' => $password]);
+
+        $this->temporaryPassword = $password;
+        $this->showPasswordModal = true;
+    }
+
+    public function confirmDelete(User $user): void
+    {
+        abort_unless(auth()->user()->esAdmin(), 403);
+
+        $this->deletingId = $user->id;
+        $this->showDeleteModal = true;
+    }
+
+    public function delete(): void
+    {
+        abort_unless(auth()->user()->esAdmin(), 403);
+
+        $user = User::findOrFail($this->deletingId);
+
+        abort_if($user->id === auth()->id(), 403);
+        abort_if(
+            $user->esAdmin() && User::role('admin')->count() <= 1,
+            403,
+        );
+
+        $user->delete();
+
+        $this->showDeleteModal = false;
+        $this->deletingId = null;
+    }
+
     private function resetEdit(): void
     {
         $this->editingId = null;
@@ -106,7 +149,7 @@ new #[Title('Usuarios')] class extends Component {
     }
 }; ?>
 
-<section class="w-full p-6 lg:p-8">
+<section class="w-full px-3 py-4 sm:p-6 lg:p-8">
     <x-ui.page-header
         :title="__('Usuarios')"
         :subtitle="__('Gestiona los roles, sucursales y acceso de los usuarios')"
@@ -156,7 +199,11 @@ new #[Title('Usuarios')] class extends Component {
                         <flux:table.cell>
                             <div class="flex justify-end gap-1">
                                 <flux:button wire:click="toggleActivo({{ $usuario->id }})" size="sm" variant="subtle" :icon="$usuario->activo ? 'lock-open' : 'lock-closed'" inset="top bottom" />
+                                <flux:button wire:click="resetPassword({{ $usuario->id }})" size="sm" variant="subtle" icon="key" inset="top bottom" />
                                 <flux:button wire:click="edit({{ $usuario->id }})" size="sm" variant="subtle" icon="pencil" inset="top bottom" />
+                                @if ($usuario->id !== auth()->id())
+                                    <flux:button wire:click="confirmDelete({{ $usuario->id }})" size="sm" variant="subtle" icon="trash" inset="top bottom" class="text-red-500 hover:text-red-600" />
+                                @endif
                             </div>
                         </flux:table.cell>
                     </flux:table.row>
@@ -191,7 +238,11 @@ new #[Title('Usuarios')] class extends Component {
                     </div>
                     <div class="flex shrink-0 gap-1">
                         <flux:button wire:click="toggleActivo({{ $usuario->id }})" size="sm" variant="subtle" :icon="$usuario->activo ? 'lock-open' : 'lock-closed'" inset="top bottom" />
+                        <flux:button wire:click="resetPassword({{ $usuario->id }})" size="sm" variant="subtle" icon="key" inset="top bottom" />
                         <flux:button wire:click="edit({{ $usuario->id }})" size="sm" variant="subtle" icon="pencil" inset="top bottom" />
+                        @if ($usuario->id !== auth()->id())
+                            <flux:button wire:click="confirmDelete({{ $usuario->id }})" size="sm" variant="subtle" icon="trash" inset="top bottom" class="text-red-500 hover:text-red-600" />
+                        @endif
                     </div>
                 </div>
             </div>
@@ -203,6 +254,76 @@ new #[Title('Usuarios')] class extends Component {
             <flux:text>{{ __('No hay usuarios registrados.') }}</flux:text>
         </div>
     @endif
+
+    {{-- Modal contraseña temporal --}}
+    <flux:modal wire:model.self="showPasswordModal" class="md:w-96">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">{{ __('Contraseña temporal generada') }}</flux:heading>
+                <flux:subheading>{{ __('Comparte esta contraseña con el usuario. Solo se muestra una vez.') }}</flux:subheading>
+            </div>
+
+            <div
+                x-data="{ copied: false }"
+                class="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800"
+            >
+                <span class="flex-1 font-mono text-lg font-semibold tracking-widest text-zinc-800 dark:text-white select-all">
+                    {{ $temporaryPassword }}
+                </span>
+                <flux:button
+                    x-show="!copied"
+                    size="sm"
+                    variant="ghost"
+                    icon="clipboard"
+                    x-on:click="
+                        const text = '{{ $temporaryPassword }}';
+                        if (navigator.clipboard && window.isSecureContext) {
+                            navigator.clipboard.writeText(text);
+                        } else {
+                            const el = document.createElement('textarea');
+                            el.value = text;
+                            el.style.position = 'fixed';
+                            el.style.left = '-9999px';
+                            el.style.top = '-9999px';
+                            document.body.appendChild(el);
+                            el.focus();
+                            el.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(el);
+                        }
+                        copied = true;
+                        setTimeout(() => copied = false, 2000);
+                    "
+                />
+                <flux:button x-show="copied" x-cloak size="sm" variant="ghost" icon="check" class="text-green-600" />
+            </div>
+
+            <div class="flex justify-end">
+                <flux:modal.close>
+                    <flux:button variant="primary">{{ __('Listo') }}</flux:button>
+                </flux:modal.close>
+            </div>
+        </div>
+    </flux:modal>
+
+    {{-- Modal confirmar eliminación --}}
+    <flux:modal wire:model.self="showDeleteModal" class="md:w-96">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">{{ __('Eliminar usuario') }}</flux:heading>
+                <flux:subheading>{{ __('Esta acción no se puede deshacer. El usuario perderá acceso inmediatamente.') }}</flux:subheading>
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button variant="ghost">{{ __('Cancelar') }}</flux:button>
+                </flux:modal.close>
+                <flux:button wire:click="delete" variant="danger" wire:loading.attr="disabled">
+                    {{ __('Eliminar') }}
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
 
     {{-- Modal editar usuario --}}
     <flux:modal wire:model.self="showEditModal" class="md:w-96">

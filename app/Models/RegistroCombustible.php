@@ -60,7 +60,7 @@ class RegistroCombustible extends Model
 
     public function scopeForUser(Builder $query, User $user): Builder
     {
-        if ($user->esAdmin()) {
+        if ($user->puedeVerTodo()) {
             return $query;
         }
 

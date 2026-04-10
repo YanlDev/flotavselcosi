@@ -24,6 +24,10 @@ new #[Title('Combustible')] class extends Component {
     #[Url]
     public string $filterSucursal = '';
 
+    // Modal eliminar
+    public bool $showDeleteModal = false;
+    public ?int $deletingId = null;
+
     // Modal crear
     public bool $showCrearModal = false;
     public int|string $vehiculoId = '';
@@ -59,7 +63,7 @@ new #[Title('Combustible')] class extends Component {
             ))
             ->when($this->filterEstado, fn ($q) => $q->where('estado', $this->filterEstado))
             ->when(
-                $this->filterSucursal && auth()->user()->esAdmin(),
+                $this->filterSucursal && auth()->user()->puedeVerTodo(),
                 fn ($q) => $q->where('sucursal_id', $this->filterSucursal)
             )
             ->orderByDesc('created_at')
@@ -128,6 +132,27 @@ new #[Title('Combustible')] class extends Component {
         $this->showCrearModal = false;
     }
 
+    public function confirmDelete(int $id): void
+    {
+        abort_unless(auth()->user()->esAdmin(), 403);
+        $this->deletingId = $id;
+        $this->showDeleteModal = true;
+    }
+
+    public function delete(StorageService $storage): void
+    {
+        abort_unless(auth()->user()->esAdmin(), 403);
+
+        $registro = RegistroCombustible::findOrFail($this->deletingId);
+        $storage->delete($registro->foto_factura_key);
+        $storage->delete($registro->foto_odometro_key);
+        $registro->delete();
+
+        $this->showDeleteModal = false;
+        $this->deletingId = null;
+        unset($this->registros);
+    }
+
     public function estadoBadgeColor(string $estado): string
     {
         return match ($estado) {
@@ -149,7 +174,7 @@ new #[Title('Combustible')] class extends Component {
     }
 }; ?>
 
-<section class="w-full p-6 lg:p-8">
+<section class="w-full px-3 py-4 sm:p-6 lg:p-8">
 
     <x-ui.page-header
         :title="__('Combustible')"
@@ -169,7 +194,7 @@ new #[Title('Combustible')] class extends Component {
     </x-ui.page-header>
 
     {{-- Filtros --}}
-    <div class="mb-4 space-y-2 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-3">
+    <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
         <div class="w-full sm:flex-1 sm:min-w-48">
             <flux:input
                 wire:model.live.debounce.300ms="search"
@@ -179,21 +204,23 @@ new #[Title('Combustible')] class extends Component {
             />
         </div>
 
-        <flux:select wire:model.live="filterEstado" class="sm:w-40">
-            <flux:select.option value="">{{ __('Estado') }}</flux:select.option>
-            <flux:select.option value="pendiente">{{ __('Pendiente') }}</flux:select.option>
-            <flux:select.option value="aprobado">{{ __('Aprobado') }}</flux:select.option>
-            <flux:select.option value="rechazado">{{ __('Rechazado') }}</flux:select.option>
-        </flux:select>
-
-        @if (auth()->user()->esAdmin())
-            <flux:select wire:model.live="filterSucursal" class="sm:w-44">
-                <flux:select.option value="">{{ __('Sucursal') }}</flux:select.option>
-                @foreach ($this->sucursales as $sucursal)
-                    <flux:select.option :value="$sucursal->id">{{ $sucursal->nombre }}</flux:select.option>
-                @endforeach
+        <div class="grid grid-cols-2 gap-2 sm:contents">
+            <flux:select wire:model.live="filterEstado" class="sm:w-40">
+                <flux:select.option value="">{{ __('Estado') }}</flux:select.option>
+                <flux:select.option value="pendiente">{{ __('Pendiente') }}</flux:select.option>
+                <flux:select.option value="aprobado">{{ __('Aprobado') }}</flux:select.option>
+                <flux:select.option value="rechazado">{{ __('Rechazado') }}</flux:select.option>
             </flux:select>
-        @endif
+
+            @if (auth()->user()->puedeVerTodo())
+                <flux:select wire:model.live="filterSucursal" class="sm:w-44">
+                    <flux:select.option value="">{{ __('Sucursal') }}</flux:select.option>
+                    @foreach ($this->sucursales as $sucursal)
+                        <flux:select.option :value="$sucursal->id">{{ $sucursal->nombre }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+            @endif
+        </div>
 
         @if ($this->hasActiveFilters)
             <flux:button wire:click="clearFilters" variant="ghost" size="sm" icon="x-mark" class="self-center">
@@ -207,7 +234,7 @@ new #[Title('Combustible')] class extends Component {
         <flux:table :paginate="$this->registros">
             <flux:table.columns>
                 <flux:table.column>{{ __('Vehículo') }}</flux:table.column>
-                @if (auth()->user()->esAdmin())
+                @if (auth()->user()->puedeVerTodo())
                     <flux:table.column>{{ __('Sucursal') }}</flux:table.column>
                 @endif
                 <flux:table.column>{{ __('Enviado por') }}</flux:table.column>
@@ -228,7 +255,7 @@ new #[Title('Combustible')] class extends Component {
                             </div>
                         </flux:table.cell>
 
-                        @if (auth()->user()->esAdmin())
+                        @if (auth()->user()->puedeVerTodo())
                             <flux:table.cell class="text-sm text-slate-600 dark:text-slate-300">{{ $registro->sucursal?->nombre ?? '—' }}</flux:table.cell>
                         @endif
 
@@ -243,12 +270,22 @@ new #[Title('Combustible')] class extends Component {
                         </flux:table.cell>
 
                         <flux:table.cell>
-                            <flux:button
-                                :href="route('combustible.show', $registro)"
-                                size="sm" variant="subtle" icon="eye"
-                                inset="top bottom"
-                                wire:navigate
-                            />
+                            <div class="flex items-center gap-1">
+                                <flux:button
+                                    :href="route('combustible.show', $registro)"
+                                    size="sm" variant="subtle" icon="eye"
+                                    inset="top bottom"
+                                    wire:navigate
+                                />
+                                @if (auth()->user()->esAdmin())
+                                    <flux:button
+                                        size="sm" variant="subtle" icon="trash"
+                                        inset="top bottom"
+                                        wire:click="confirmDelete({{ $registro->id }})"
+                                        class="text-red-500 hover:text-red-600 dark:text-red-400"
+                                    />
+                                @endif
+                            </div>
                         </flux:table.cell>
                     </flux:table.row>
                 @endforeach
@@ -259,35 +296,48 @@ new #[Title('Combustible')] class extends Component {
     {{-- Cards mobile --}}
     <div class="sm:hidden space-y-3">
         @foreach ($this->registros as $registro)
-            <a
-                href="{{ route('combustible.show', $registro) }}"
-                wire:navigate
-                class="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-brand-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-700"
-            >
-                <div class="flex items-start justify-between gap-2">
-                    <div class="min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="font-mono-data text-base font-bold text-slate-900 dark:text-white">
-                                {{ $registro->vehiculo?->placa ?? '—' }}
-                            </span>
-                            <x-ui.badge-status :status="$registro->estado" :label="$this->estadoLabel($registro->estado)" />
-                        </div>
-                        <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                            {{ $registro->vehiculo?->marca }} {{ $registro->vehiculo?->modelo }}
-                        </p>
-                        <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
-                            {{ $registro->enviadoPor?->name }} · {{ $registro->created_at->format('d/m/Y') }}
-                        </p>
-                        @if (auth()->user()->esAdmin() && $registro->sucursal)
-                            <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
-                                <flux:icon name="building-office" class="inline size-3 mr-0.5" />
-                                {{ $registro->sucursal->nombre }}
+            <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <a
+                    href="{{ route('combustible.show', $registro) }}"
+                    wire:navigate
+                    class="block p-4 transition-colors hover:border-brand-300 dark:hover:border-brand-700"
+                >
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-mono-data text-base font-bold text-slate-900 dark:text-white">
+                                    {{ $registro->vehiculo?->placa ?? '—' }}
+                                </span>
+                                <x-ui.badge-status :status="$registro->estado" :label="$this->estadoLabel($registro->estado)" />
+                            </div>
+                            <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                                {{ $registro->vehiculo?->marca }} {{ $registro->vehiculo?->modelo }}
                             </p>
-                        @endif
+                            <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
+                                {{ $registro->enviadoPor?->name }} · {{ $registro->created_at->format('d/m/Y') }}
+                            </p>
+                            @if (auth()->user()->puedeVerTodo() && $registro->sucursal)
+                                <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
+                                    <flux:icon name="building-office" class="inline size-3 mr-0.5" />
+                                    {{ $registro->sucursal->nombre }}
+                                </p>
+                            @endif
+                        </div>
+                        <flux:icon name="chevron-right" class="size-5 shrink-0 text-slate-400 mt-0.5" />
                     </div>
-                    <flux:icon name="chevron-right" class="size-5 shrink-0 text-slate-400 mt-0.5" />
-                </div>
-            </a>
+                </a>
+                @if (auth()->user()->esAdmin())
+                    <div class="border-t border-slate-100 px-4 py-2 dark:border-slate-800">
+                        <flux:button
+                            size="sm" variant="ghost" icon="trash"
+                            wire:click="confirmDelete({{ $registro->id }})"
+                            class="text-red-500 hover:text-red-600 dark:text-red-400"
+                        >
+                            {{ __('Eliminar') }}
+                        </flux:button>
+                    </div>
+                @endif
+            </div>
         @endforeach
 
         @if ($this->registros->hasPages())
@@ -307,6 +357,24 @@ new #[Title('Combustible')] class extends Component {
             />
         </div>
     @endif
+
+    {{-- Modal: Confirmar eliminación --}}
+    <flux:modal wire:model.self="showDeleteModal" class="md:w-80">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">{{ __('Eliminar registro') }}</flux:heading>
+                <flux:text class="mt-2">{{ __('¿Estás seguro? Se eliminarán también las fotos adjuntas. Esta acción no se puede deshacer.') }}</flux:text>
+            </div>
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button variant="ghost">{{ __('Cancelar') }}</flux:button>
+                </flux:modal.close>
+                <flux:button wire:click="delete" variant="danger" wire:loading.attr="disabled">
+                    {{ __('Eliminar') }}
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
 
     {{-- Modal: Nueva carga --}}
     <flux:modal wire:model.self="showCrearModal" class="md:w-[36rem]">

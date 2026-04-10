@@ -36,6 +36,7 @@ new #[Title('Detalle de carga')] class extends Component {
         $user = auth()->user();
         abort_unless(
             $user->esAdmin()
+                || $user->esVisor()
                 || $user->esJefeResguardo()
                 || $registroCombustible->enviado_por === $user->id,
             403
@@ -191,7 +192,7 @@ new #[Title('Detalle de carga')] class extends Component {
 }; ?>
 
 <div
-    class="w-full p-6 lg:p-8"
+    class="w-full px-3 py-4 sm:p-6 lg:p-8"
     x-data="{ show: false, url: '', mime: '', nombre: '' }"
     x-on:abrir-preview-combustible.window="show = true; url = $event.detail.url; mime = $event.detail.mime; nombre = $event.detail.nombre"
 >

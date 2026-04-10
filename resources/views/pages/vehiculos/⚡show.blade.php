@@ -77,7 +77,7 @@ new #[Title('Detalle vehículo')] class extends Component {
     }
 }; ?>
 
-<section class="w-full max-w-6xl mx-auto p-6 lg:p-8">
+<section class="w-full max-w-6xl mx-auto px-3 py-4 sm:p-6 lg:p-8">
 
     {{-- Barra superior --}}
     <div class="mb-4 flex items-center justify-between gap-3">

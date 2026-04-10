@@ -22,7 +22,7 @@ class AlertasService
         return DocumentoVehicular::with(['vehiculo.sucursal'])
             ->whereNotNull('vencimiento')
             ->where('vencimiento', '<=', now()->addDays($dias)->endOfDay())
-            ->when(! $user->esAdmin(), fn ($q) => $q->whereHas(
+            ->when(! $user->puedeVerTodo(), fn ($q) => $q->whereHas(
                 'vehiculo',
                 fn ($v) => $v->where('sucursal_id', $user->sucursal_id)
             ))
@@ -38,13 +38,13 @@ class AlertasService
     public function mantenimientosAlerta(User $user): Collection
     {
         $vehiculosKm = Vehiculo::query()
-            ->when(! $user->esAdmin(), fn ($q) => $q->where('sucursal_id', $user->sucursal_id))
+            ->when(! $user->puedeVerTodo(), fn ($q) => $q->where('sucursal_id', $user->sucursal_id))
             ->whereNotNull('km_actuales')
             ->pluck('km_actuales', 'id');
 
         return Mantenimiento::with(['vehiculo.sucursal'])
             ->whereHas('vehiculo', function ($q) use ($user) {
-                $q->when(! $user->esAdmin(), fn ($v) => $v->where('sucursal_id', $user->sucursal_id));
+                $q->when(! $user->puedeVerTodo(), fn ($v) => $v->where('sucursal_id', $user->sucursal_id));
             })
             ->where(function ($q) use ($vehiculosKm) {
                 $q->where(fn ($q2) => $q2
@@ -79,7 +79,7 @@ class AlertasService
         return Conductor::with('sucursal')
             ->whereNotNull('licencia_vencimiento')
             ->where('licencia_vencimiento', '<=', now()->addDays($dias)->endOfDay())
-            ->when(! $user->esAdmin(), fn ($q) => $q->where('sucursal_id', $user->sucursal_id))
+            ->when(! $user->puedeVerTodo(), fn ($q) => $q->where('sucursal_id', $user->sucursal_id))
             ->where('activo', true)
             ->orderBy('licencia_vencimiento')
             ->get();

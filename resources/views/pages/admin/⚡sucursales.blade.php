@@ -92,7 +92,7 @@ new #[Title('Sucursales')] class extends Component {
     }
 }; ?>
 
-<section class="w-full p-6 lg:p-8">
+<section class="w-full px-3 py-4 sm:p-6 lg:p-8">
     <x-ui.page-header
         :title="__('Sucursales')"
         :subtitle="__('Gestiona las sucursales de la empresa')"

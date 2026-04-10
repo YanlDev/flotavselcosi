@@ -42,7 +42,7 @@ new #[Title('Conductores')] class extends Component {
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->esAdmin(), 403);
+        abort_unless(auth()->user()->esAdmin() || auth()->user()->esVisor(), 403);
     }
 
     public function updatedSearch(): void { $this->resetPage(); }
@@ -111,6 +111,7 @@ new #[Title('Conductores')] class extends Component {
 
     public function abrirCrear(): void
     {
+        abort_unless(auth()->user()->esAdmin(), 403);
         $this->reset([
             'editingId', 'nombreCompleto', 'dni', 'telefono', 'email',
             'sucursalId', 'vehiculoId', 'licenciaNumero', 'licenciaCategoria',
@@ -122,6 +123,7 @@ new #[Title('Conductores')] class extends Component {
 
     public function abrirEditar(int $id): void
     {
+        abort_unless(auth()->user()->esAdmin(), 403);
         $c = Conductor::findOrFail($id);
 
         $this->editingId            = $c->id;
@@ -140,6 +142,7 @@ new #[Title('Conductores')] class extends Component {
 
     public function guardar(): void
     {
+        abort_unless(auth()->user()->esAdmin(), 403);
         $this->validate([
             'nombreCompleto'      => ['required', 'string', 'max:200'],
             'dni'                 => ['required', 'digits:8',
@@ -181,12 +184,14 @@ new #[Title('Conductores')] class extends Component {
 
     public function confirmDelete(int $id): void
     {
+        abort_unless(auth()->user()->esAdmin(), 403);
         $this->deletingId = $id;
         $this->showDeleteModal = true;
     }
 
     public function delete(): void
     {
+        abort_unless(auth()->user()->esAdmin(), 403);
         Conductor::findOrFail($this->deletingId)->delete();
 
         unset($this->conductores);
@@ -195,7 +200,7 @@ new #[Title('Conductores')] class extends Component {
     }
 }; ?>
 
-<section class="w-full p-6 lg:p-8">
+<section class="w-full px-3 py-4 sm:p-6 lg:p-8">
 
     <x-ui.page-header
         :title="__('Conductores')"
@@ -205,11 +210,13 @@ new #[Title('Conductores')] class extends Component {
             ['label' => __('Conductores')],
         ]"
     >
-        <x-slot:actions>
-            <flux:button variant="primary" icon="plus" wire:click="abrirCrear">
-                {{ __('Nuevo conductor') }}
-            </flux:button>
-        </x-slot:actions>
+        @if (auth()->user()->esAdmin())
+            <x-slot:actions>
+                <flux:button variant="primary" icon="plus" wire:click="abrirCrear">
+                    {{ __('Nuevo conductor') }}
+                </flux:button>
+            </x-slot:actions>
+        @endif
     </x-ui.page-header>
 
     {{-- Filtros --}}
@@ -318,18 +325,20 @@ new #[Title('Conductores')] class extends Component {
                         </flux:table.cell>
 
                         <flux:table.cell>
-                            <div class="flex gap-1">
-                                <flux:button
-                                    wire:click="abrirEditar({{ $conductor->id }})"
-                                    size="sm" variant="subtle" icon="pencil"
-                                    inset="top bottom"
-                                />
-                                <flux:button
-                                    wire:click="confirmDelete({{ $conductor->id }})"
-                                    size="sm" variant="subtle" icon="trash"
-                                    inset="top bottom"
-                                />
-                            </div>
+                            @if (auth()->user()->esAdmin())
+                                <div class="flex gap-1">
+                                    <flux:button
+                                        wire:click="abrirEditar({{ $conductor->id }})"
+                                        size="sm" variant="subtle" icon="pencil"
+                                        inset="top bottom"
+                                    />
+                                    <flux:button
+                                        wire:click="confirmDelete({{ $conductor->id }})"
+                                        size="sm" variant="subtle" icon="trash"
+                                        inset="top bottom"
+                                    />
+                                </div>
+                            @endif
                         </flux:table.cell>
 
                     </flux:table.row>
@@ -383,18 +392,20 @@ new #[Title('Conductores')] class extends Component {
                         @endif
                     </div>
 
-                    <flux:dropdown position="bottom" align="end">
-                        <flux:button variant="ghost" icon="ellipsis-vertical" size="sm" />
-                        <flux:menu>
-                            <flux:menu.item icon="pencil" wire:click="abrirEditar({{ $conductor->id }})">
-                                {{ __('Editar') }}
-                            </flux:menu.item>
-                            <flux:menu.separator />
-                            <flux:menu.item icon="trash" variant="danger" wire:click="confirmDelete({{ $conductor->id }})">
-                                {{ __('Eliminar') }}
-                            </flux:menu.item>
-                        </flux:menu>
-                    </flux:dropdown>
+                    @if (auth()->user()->esAdmin())
+                        <flux:dropdown position="bottom" align="end">
+                            <flux:button variant="ghost" icon="ellipsis-vertical" size="sm" />
+                            <flux:menu>
+                                <flux:menu.item icon="pencil" wire:click="abrirEditar({{ $conductor->id }})">
+                                    {{ __('Editar') }}
+                                </flux:menu.item>
+                                <flux:menu.separator />
+                                <flux:menu.item icon="trash" variant="danger" wire:click="confirmDelete({{ $conductor->id }})">
+                                    {{ __('Eliminar') }}
+                                </flux:menu.item>
+                            </flux:menu>
+                        </flux:dropdown>
+                    @endif
                 </div>
             </div>
         @endforeach
