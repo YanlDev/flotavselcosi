@@ -13,6 +13,29 @@ use Livewire\Component;
 
 new #[Title('Dashboard')] class extends Component {
 
+    public bool $showCargaRapida = false;
+    public string $busquedaVehiculo = '';
+
+    #[Computed]
+    public function vehiculosCargaRapida(): \Illuminate\Database\Eloquent\Collection
+    {
+        $user = auth()->user();
+
+        return Vehiculo::forUser($user)
+            ->when($this->busquedaVehiculo, fn ($q) => $q->search($this->busquedaVehiculo))
+            ->with('sucursal')
+            ->orderBy('placa')
+            ->limit(50)
+            ->get(['id', 'placa', 'marca', 'modelo', 'estado', 'sucursal_id']);
+    }
+
+    public function abrirCargaRapida(): void
+    {
+        $this->busquedaVehiculo = '';
+        unset($this->vehiculosCargaRapida);
+        $this->showCargaRapida = true;
+    }
+
     #[Computed]
     public function kpis(): array
     {
@@ -172,6 +195,25 @@ new #[Title('Dashboard')] class extends Component {
         :title="__('Dashboard')"
         :subtitle="__('Bienvenido,') . ' ' . auth()->user()->name . (! auth()->user()->puedeVerTodo() && auth()->user()->sucursal ? ' · ' . auth()->user()->sucursal->nombre : '')"
     />
+
+    {{-- Acceso rápido: Registrar combustible (admin y jefe_resguardo) --}}
+    @if (auth()->user()->esAdmin() || auth()->user()->esJefeResguardo())
+        <div class="mb-6">
+            <button
+                wire:click="abrirCargaRapida"
+                class="group flex w-full items-center gap-4 rounded-2xl border-2 border-dashed border-brand-300 bg-brand-50 px-5 py-4 text-left transition-all hover:border-brand-400 hover:bg-brand-100 active:scale-[0.99] dark:border-brand-700 dark:bg-brand-950/30 dark:hover:border-brand-600 dark:hover:bg-brand-950/50 sm:w-auto sm:min-w-64"
+            >
+                <div class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-md group-hover:bg-brand-600 transition-colors">
+                    <flux:icon name="fire" class="size-6" />
+                </div>
+                <div>
+                    <p class="font-semibold text-brand-700 dark:text-brand-300">{{ __('Registrar combustible') }}</p>
+                    <p class="text-xs text-brand-500 dark:text-brand-400">{{ __('Selecciona un vehículo para comenzar') }}</p>
+                </div>
+                <flux:icon name="chevron-right" class="ml-auto size-5 text-brand-400 group-hover:translate-x-0.5 transition-transform dark:text-brand-500" />
+            </button>
+        </div>
+    @endif
 
     {{-- Combustible pendiente (solo admin) --}}
     @if (auth()->user()->puedeVerTodo() && $this->kpis['combustiblePendiente'] > 0)
@@ -383,4 +425,58 @@ new #[Title('Dashboard')] class extends Component {
             </x-ui.section-card>
         @endif
     </div>
+
+    {{-- Modal: Selección rápida de vehículo para cargar combustible --}}
+    @if (auth()->user()->esAdmin() || auth()->user()->esJefeResguardo())
+        <flux:modal wire:model.self="showCargaRapida" class="md:w-[32rem]">
+            <div class="space-y-4">
+                <div>
+                    <flux:heading size="lg">{{ __('¿Qué vehículo vas a cargar?') }}</flux:heading>
+                    <flux:text class="mt-1 text-sm text-zinc-500">
+                        {{ __('Selecciona un vehículo para ir directo al registro de combustible.') }}
+                    </flux:text>
+                </div>
+
+                <flux:input
+                    wire:model.live.debounce.300ms="busquedaVehiculo"
+                    icon="magnifying-glass"
+                    :placeholder="__('Buscar por placa, marca o modelo…')"
+                    autofocus
+                />
+
+                <div class="max-h-80 overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700" wire:loading.class="opacity-60" wire:target="busquedaVehiculo">
+                    @forelse ($this->vehiculosCargaRapida as $vehiculo)
+                        <a
+                            href="{{ route('vehiculos.show', $vehiculo) }}?tab=combustible&registrar=1"
+                            wire:navigate
+                            class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/60 [&:not(:last-child)]:border-b border-zinc-100 dark:border-zinc-800"
+                        >
+                            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
+                                <flux:icon name="truck" class="size-5 text-slate-500 dark:text-slate-400" />
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-mono-data text-sm font-semibold text-slate-900 dark:text-white">{{ $vehiculo->placa }}</span>
+                                    <x-ui.badge-status :status="$vehiculo->estado" />
+                                </div>
+                                <p class="truncate text-xs text-slate-500 dark:text-slate-400">
+                                    {{ $vehiculo->marca }} {{ $vehiculo->modelo }}
+                                    @if ($vehiculo->sucursal && auth()->user()->puedeVerTodo())
+                                        · {{ $vehiculo->sucursal->nombre }}
+                                    @endif
+                                </p>
+                            </div>
+                            <flux:icon name="chevron-right" class="size-4 shrink-0 text-zinc-400" />
+                        </a>
+                    @empty
+                        <div class="px-4 py-8 text-center">
+                            <flux:icon name="truck" class="mx-auto mb-2 size-8 text-zinc-300 dark:text-zinc-600" />
+                            <p class="text-sm text-zinc-400">{{ __('Sin vehículos encontrados') }}</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        </flux:modal>
+    @endif
+
 </section>

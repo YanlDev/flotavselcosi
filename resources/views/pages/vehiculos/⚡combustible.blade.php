@@ -23,6 +23,10 @@ new class extends Component {
     {
         $this->authorize('view', $vehiculo);
         $this->vehiculo = $vehiculo;
+
+        if (request()->boolean('registrar') && $this->puedeRegistrar()) {
+            $this->showCrearModal = true;
+        }
     }
 
     #[Computed]

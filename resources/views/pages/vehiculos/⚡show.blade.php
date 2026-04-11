@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\FotoVehiculo;
 use App\Models\Vehiculo;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -13,6 +15,15 @@ new #[Title('Detalle vehículo')] class extends Component {
     {
         $this->authorize('view', $vehiculo);
         $this->vehiculo = $vehiculo->load('sucursal', 'conductor');
+    }
+
+    #[Computed]
+    public function fotoFrontal(): ?FotoVehiculo
+    {
+        return FotoVehiculo::where('vehiculo_id', $this->vehiculo->id)
+            ->where('categoria', 'frontal')
+            ->latest()
+            ->first();
     }
 
     public function delete(): void
@@ -128,8 +139,16 @@ new #[Title('Detalle vehículo')] class extends Component {
     {{-- Hero card --}}
     <div class="mb-6 rounded-2xl border bg-gradient-to-br {{ $this->estadoHeaderColor() }} p-6 bg-white dark:bg-slate-900 shadow-sm">
         <div class="flex items-start gap-4">
-            <div class="hidden sm:flex size-14 shrink-0 items-center justify-center rounded-xl bg-brand-50 ring-1 ring-brand-100 dark:bg-brand-950/40 dark:ring-brand-900">
-                <flux:icon :name="$this->tipoIcon()" class="size-7 text-brand-600 dark:text-brand-400" />
+            <div class="hidden sm:flex size-14 shrink-0 items-center justify-center rounded-xl overflow-hidden bg-brand-50 ring-1 ring-brand-100 dark:bg-brand-950/40 dark:ring-brand-900">
+                @if ($this->fotoFrontal)
+                    <img
+                        src="{{ route('vehiculos.fotos.thumbnail', [$vehiculo, $this->fotoFrontal]) }}"
+                        alt="{{ __('Foto frontal') }}"
+                        class="size-full object-cover"
+                    />
+                @else
+                    <flux:icon :name="$this->tipoIcon()" class="size-7 text-brand-600 dark:text-brand-400" />
+                @endif
             </div>
 
             <div class="min-w-0 flex-1">
@@ -183,7 +202,7 @@ new #[Title('Detalle vehículo')] class extends Component {
     @endif
 
     {{-- Tabs --}}
-    <div x-data="{ tab: 'info' }">
+    <div x-data="{ tab: new URLSearchParams(window.location.search).get('tab') || 'info' }">
         {{-- Tab bar: scrollable en mobile --}}
         <div class="mb-6 overflow-x-auto border-b border-zinc-200 dark:border-zinc-700">
             <div class="flex min-w-max gap-0">
