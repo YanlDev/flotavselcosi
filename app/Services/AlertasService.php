@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Conductor;
 use App\Models\DocumentoVehicular;
+use App\Models\EquipamientoVehicular;
 use App\Models\Mantenimiento;
 use App\Models\User;
 use App\Models\Vehiculo;
@@ -31,42 +32,41 @@ class AlertasService
     }
 
     /**
-     * Mantenimientos cuya próxima fecha ≤ 30 días o km restantes ≤ 1000.
+     * Mantenimientos con ≤ 300 km restantes para el próximo servicio.
+     * Rojo: ≤ 100 km | Amarillo: 101–300 km
      *
-     * @return Collection<int, Mantenimiento>
+     * @return \Illuminate\Support\Collection<int, Mantenimiento>
      */
-    public function mantenimientosAlerta(User $user): Collection
+    public function mantenimientosAlerta(User $user): \Illuminate\Support\Collection
     {
         $vehiculosKm = Vehiculo::query()
             ->when(! $user->puedeVerTodo(), fn ($q) => $q->where('sucursal_id', $user->sucursal_id))
             ->whereNotNull('km_actuales')
             ->pluck('km_actuales', 'id');
 
-        return Mantenimiento::with(['vehiculo.sucursal'])
+        if ($vehiculosKm->isEmpty()) {
+            return collect();
+        }
+
+        $query = Mantenimiento::with(['vehiculo.sucursal'])
             ->whereHas('vehiculo', function ($q) use ($user) {
                 $q->when(! $user->puedeVerTodo(), fn ($v) => $v->where('sucursal_id', $user->sucursal_id));
             })
+            ->whereNotNull('proximo_km')
             ->where(function ($q) use ($vehiculosKm) {
-                $q->where(fn ($q2) => $q2
-                    ->whereNotNull('proxima_fecha')
-                    ->where('proxima_fecha', '<=', now()->addDays(30)->endOfDay())
-                );
-
-                if ($vehiculosKm->isNotEmpty()) {
-                    $q->orWhere(function ($q2) use ($vehiculosKm) {
-                        $q2->whereNotNull('proximo_km');
-                        foreach ($vehiculosKm as $vehiculoId => $kmActuales) {
-                            $q2->orWhere(function ($q3) use ($vehiculoId, $kmActuales) {
-                                $q3->where('vehiculo_id', $vehiculoId)
-                                    ->whereRaw('proximo_km - ? <= 1000', [$kmActuales]);
-                            });
-                        }
+                foreach ($vehiculosKm as $vehiculoId => $kmActuales) {
+                    $q->orWhere(function ($q2) use ($vehiculoId, $kmActuales) {
+                        $q2->where('vehiculo_id', $vehiculoId)
+                            ->whereRaw('proximo_km - ? <= 300', [$kmActuales]);
                     });
                 }
-            })
-            ->orderByRaw('proxima_fecha IS NULL ASC')
-            ->orderBy('proxima_fecha')
-            ->get();
+            });
+
+        return $query->get()->sortBy(function (Mantenimiento $m) use ($vehiculosKm) {
+            $kmActuales = $vehiculosKm[$m->vehiculo_id] ?? 0;
+
+            return $m->proximo_km - $kmActuales;
+        })->values();
     }
 
     /**
@@ -86,13 +86,32 @@ class AlertasService
     }
 
     /**
+     * Extintores vencidos o próximos a vencer (≤30 días).
+     *
+     * @return Collection<int, EquipamientoVehicular>
+     */
+    public function equipamientoAlerta(User $user, int $dias = 30): Collection
+    {
+        return EquipamientoVehicular::with(['vehiculo.sucursal'])
+            ->whereNotNull('vencimiento')
+            ->where('vencimiento', '<=', now()->addDays($dias)->endOfDay())
+            ->when(! $user->puedeVerTodo(), fn ($q) => $q->whereHas(
+                'vehiculo',
+                fn ($v) => $v->where('sucursal_id', $user->sucursal_id)
+            ))
+            ->orderBy('vencimiento')
+            ->get();
+    }
+
+    /**
      * Total de alertas activas (para badge en sidebar). Cache 5 min.
      */
     public function totalAlertas(User $user): int
     {
         return Cache::remember("alertas.total.{$user->id}", 300, fn () => $this->documentosAlerta($user)->count()
             + $this->mantenimientosAlerta($user)->count()
-            + $this->licenciasAlerta($user)->count());
+            + $this->licenciasAlerta($user)->count()
+            + $this->equipamientoAlerta($user)->count());
     }
 
     /**

@@ -71,31 +71,28 @@ new #[Title('Dashboard')] class extends Component {
                 ))
                 ->count();
 
-            // Mantenimientos urgentes (próxima fecha ≤30 días o km restantes ≤1000)
+            // Mantenimientos urgentes (≤300 km restantes para el próximo servicio)
             $kmActualesSubquery = Vehiculo::selectRaw('id, km_actuales')
                 ->when($sucursalId, fn ($q) => $q->where('sucursal_id', $sucursalId))
+                ->whereNotNull('km_actuales')
                 ->pluck('km_actuales', 'id');
 
-            $mantUrgentes = Mantenimiento::whereHas('vehiculo', function ($q) use ($sucursalId) {
-                $q->when($sucursalId, fn ($v) => $v->where('sucursal_id', $sucursalId));
-            })
-                ->where(function ($q) use ($kmActualesSubquery) {
-                    $q->where(fn ($q2) => $q2
-                        ->whereNotNull('proxima_fecha')
-                        ->where('proxima_fecha', '<=', now()->addDays(30))
-                    )->orWhere(function ($q2) use ($kmActualesSubquery) {
-                        $q2->whereNotNull('proximo_km');
-                        foreach ($kmActualesSubquery as $vehiculoId => $kmActuales) {
-                            if ($kmActuales !== null) {
-                                $q2->orWhere(function ($q3) use ($vehiculoId, $kmActuales) {
-                                    $q3->where('vehiculo_id', $vehiculoId)
-                                        ->whereRaw('proximo_km - ? <= 1000', [$kmActuales]);
-                                });
-                            }
-                        }
-                    });
+            $mantUrgentes = 0;
+            if ($kmActualesSubquery->isNotEmpty()) {
+                $mantUrgentes = Mantenimiento::whereHas('vehiculo', function ($q) use ($sucursalId) {
+                    $q->when($sucursalId, fn ($v) => $v->where('sucursal_id', $sucursalId));
                 })
-                ->count();
+                    ->whereNotNull('proximo_km')
+                    ->where(function ($q) use ($kmActualesSubquery) {
+                        foreach ($kmActualesSubquery as $vehiculoId => $kmActuales) {
+                            $q->orWhere(function ($q2) use ($vehiculoId, $kmActuales) {
+                                $q2->where('vehiculo_id', $vehiculoId)
+                                    ->whereRaw('proximo_km - ? <= 300', [$kmActuales]);
+                            });
+                        }
+                    })
+                    ->count();
+            }
 
             // Combustible pendiente de revisión (admin y visor)
             $combustiblePendiente = $user->puedeVerTodo()
@@ -301,7 +298,7 @@ new #[Title('Dashboard')] class extends Component {
                 :value="$this->kpis['mantUrgentes']"
                 icon="wrench-screwdriver"
                 :color="$this->kpis['mantUrgentes'] > 0 ? 'warning' : 'slate'"
-                :hint="__('≤30 días o ≤1,000 km')"
+                :hint="__('≤300 km para servicio')"
                 :href="route('alertas.index')"
             />
         </div>

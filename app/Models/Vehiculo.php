@@ -68,6 +68,11 @@ class Vehiculo extends Model
         return $this->hasMany(RegistroCombustible::class);
     }
 
+    public function equipamiento(): HasMany
+    {
+        return $this->hasMany(EquipamientoVehicular::class);
+    }
+
     /** Aplica filtro de sucursal según el rol del usuario */
     public function scopeForUser(Builder $query, User $user): Builder
     {

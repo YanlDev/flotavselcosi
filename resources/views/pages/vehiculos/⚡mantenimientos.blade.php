@@ -45,23 +45,20 @@ new class extends Component {
     }
 
     #[Computed]
-    public function alertas(): \Illuminate\Database\Eloquent\Collection
+    public function alertas(): \Illuminate\Support\Collection
     {
+        $kmActuales = $this->vehiculo->km_actuales;
+
+        if ($kmActuales === null) {
+            return collect();
+        }
+
         return Mantenimiento::where('vehiculo_id', $this->vehiculo->id)
-            ->where(function ($q) {
-                $q->whereNotNull('proxima_fecha')
-                    ->where('proxima_fecha', '<=', now()->addDays(30))
-                    ->orWhere(function ($q2) {
-                        $q2->whereNotNull('proximo_km')
-                            ->whereNotNull('km_servicio')
-                            ->whereRaw(
-                                'proximo_km - ? <= 1000',
-                                [$this->vehiculo->km_actuales ?? 0]
-                            );
-                    });
-            })
-            ->orderBy('proxima_fecha')
-            ->get();
+            ->whereNotNull('proximo_km')
+            ->whereRaw('proximo_km - ? <= 300', [$kmActuales])
+            ->get()
+            ->sortBy(fn ($m) => $m->proximo_km - $kmActuales)
+            ->values();
     }
 
     public function abrirCrear(): void
@@ -180,39 +177,18 @@ new class extends Component {
 
     public function alertaColor(Mantenimiento $m): string
     {
-        $kmActuales = $this->vehiculo->km_actuales ?? 0;
+        $restantes = $m->proximo_km - ($this->vehiculo->km_actuales ?? 0);
 
-        // Vencido por fecha o km
-        if ($m->proxima_fecha && $m->proxima_fecha->isPast()) {
-            return 'red';
-        }
-        if ($m->proximo_km && $kmActuales >= $m->proximo_km) {
-            return 'red';
-        }
-
-        return 'amber';
+        return $restantes <= 100 ? 'red' : 'amber';
     }
 
     public function alertaTexto(Mantenimiento $m): string
     {
-        $partes = [];
-        $kmActuales = $this->vehiculo->km_actuales ?? 0;
+        $restantes = $m->proximo_km - ($this->vehiculo->km_actuales ?? 0);
 
-        if ($m->proxima_fecha) {
-            $dias = now()->diffInDays($m->proxima_fecha, false);
-            $partes[] = $dias < 0
-                ? 'Venció hace ' . abs((int) $dias) . ' días'
-                : 'Vence en ' . (int) $dias . ' días';
-        }
-
-        if ($m->proximo_km) {
-            $restantes = $m->proximo_km - $kmActuales;
-            $partes[] = $restantes <= 0
-                ? 'Km superado por ' . number_format(abs($restantes)) . ' km'
-                : 'Faltan ' . number_format($restantes) . ' km';
-        }
-
-        return implode(' · ', $partes);
+        return $restantes <= 0
+            ? 'Km superado por ' . number_format(abs($restantes)) . ' km'
+            : 'Faltan ' . number_format($restantes) . ' km';
     }
 }; ?>
 

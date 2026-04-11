@@ -194,48 +194,47 @@ new class extends Component {
 
                 <div class="divide-y divide-zinc-100 dark:divide-zinc-700 rounded-lg border border-zinc-200 dark:border-zinc-700">
                     @foreach ($docs as $doc)
-                        <div class="flex items-center justify-between gap-4 px-4 py-3">
-                            <div class="flex items-center gap-3 min-w-0">
+                        <div class="flex items-center justify-between gap-3 px-4 py-3">
+                            <div class="flex min-w-0 flex-1 items-center gap-3">
                                 <flux:icon
                                     :name="str_starts_with($doc->mime_type, 'image/') ? 'photo' : 'document-text'"
                                     class="size-5 shrink-0 text-zinc-400"
                                 />
-                                <div class="min-w-0">
+                                <div class="min-w-0 flex-1">
                                     <p class="truncate text-sm font-medium">{{ $doc->nombre }}</p>
-                                    <p class="text-xs text-zinc-400">
-                                        {{ number_format($doc->tamano_bytes / 1024, 0) }} KB
-                                        · {{ $doc->created_at->format('d/m/Y') }}
-                                    </p>
+                                    <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                        <p class="shrink-0 text-xs text-zinc-400">
+                                            {{ number_format($doc->tamano_bytes / 1024, 0) }} KB
+                                            · {{ $doc->created_at->format('d/m/Y') }}
+                                        </p>
+                                        @if ($doc->vencimiento)
+                                            <flux:badge :color="$this->vencimientoBadgeColor($doc)" size="sm">
+                                                {{ $this->vencimientoLabel($doc) }}
+                                            </flux:badge>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="flex items-center gap-3 shrink-0">
-                                @if ($doc->vencimiento)
-                                    <flux:badge :color="$this->vencimientoBadgeColor($doc)" size="sm">
-                                        {{ $this->vencimientoLabel($doc) }}
-                                    </flux:badge>
+                            <div class="flex shrink-0 gap-1">
+                                <flux:button
+                                    wire:click="previsualizarDocumento({{ $doc->id }})"
+                                    size="sm" variant="subtle" icon="eye"
+                                    inset="top bottom"
+                                />
+                                <flux:button
+                                    wire:click="descargar({{ $doc->id }})"
+                                    size="sm" variant="subtle" icon="arrow-down-tray"
+                                    inset="top bottom"
+                                />
+
+                                @if (auth()->user()->esAdmin())
+                                    <flux:button
+                                        wire:click="confirmDelete({{ $doc->id }})"
+                                        size="sm" variant="subtle" icon="trash"
+                                        inset="top bottom"
+                                    />
                                 @endif
-
-                                <div class="flex gap-1">
-                                    <flux:button
-                                        wire:click="previsualizarDocumento({{ $doc->id }})"
-                                        size="sm" variant="subtle" icon="eye"
-                                        inset="top bottom"
-                                    />
-                                    <flux:button
-                                        wire:click="descargar({{ $doc->id }})"
-                                        size="sm" variant="subtle" icon="arrow-down-tray"
-                                        inset="top bottom"
-                                    />
-
-                                    @if (auth()->user()->esAdmin())
-                                        <flux:button
-                                            wire:click="confirmDelete({{ $doc->id }})"
-                                            size="sm" variant="subtle" icon="trash"
-                                            inset="top bottom"
-                                        />
-                                    @endif
-                                </div>
                             </div>
                         </div>
                     @endforeach

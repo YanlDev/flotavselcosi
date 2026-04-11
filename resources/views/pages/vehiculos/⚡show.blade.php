@@ -212,6 +212,7 @@ new #[Title('Detalle vehículo')] class extends Component {
                         'documentos' => ['label' => __('Documentos'), 'icon' => 'document-text'],
                         'combustible' => ['label' => __('Combustible'), 'icon' => 'fire'],
                         'mantenimientos' => ['label' => __('Mantenimientos'), 'icon' => 'wrench-screwdriver'],
+                        'equipamiento' => ['label' => __('Equipamiento'), 'icon' => 'shield-check'],
                         'fotos' => ['label' => __('Fotos'), 'icon' => 'photo'],
                     ];
                 @endphp
@@ -350,6 +351,11 @@ new #[Title('Detalle vehículo')] class extends Component {
         {{-- Tab: Mantenimientos --}}
         <div x-show="tab === 'mantenimientos'" x-cloak>
             <livewire:pages::vehiculos.mantenimientos :vehiculo="$vehiculo" lazy />
+        </div>
+
+        {{-- Tab: Equipamiento --}}
+        <div x-show="tab === 'equipamiento'" x-cloak>
+            <livewire:pages::vehiculos.equipamiento :vehiculo="$vehiculo" lazy />
         </div>
 
         {{-- Tab: Fotos --}}

@@ -20,7 +20,7 @@ new #[Title('Alertas')] class extends Component {
     }
 
     #[Computed]
-    public function mantenimientos(): \Illuminate\Database\Eloquent\Collection
+    public function mantenimientos(): \Illuminate\Support\Collection
     {
         return app(AlertasService::class)->mantenimientosAlerta(auth()->user());
     }
@@ -29,6 +29,12 @@ new #[Title('Alertas')] class extends Component {
     public function licencias(): \Illuminate\Database\Eloquent\Collection
     {
         return app(AlertasService::class)->licenciasAlerta(auth()->user());
+    }
+
+    #[Computed]
+    public function equipamiento(): \Illuminate\Database\Eloquent\Collection
+    {
+        return app(AlertasService::class)->equipamientoAlerta(auth()->user());
     }
 
     public function estadoDocumento(?CarbonInterface $vencimiento): string
@@ -90,7 +96,7 @@ new #[Title('Alertas')] class extends Component {
 
     <x-ui.page-header
         :title="__('Alertas')"
-        :subtitle="__('Documentos, mantenimientos y licencias que requieren atención') . (! auth()->user()->puedeVerTodo() && auth()->user()->sucursal ? ' — ' . auth()->user()->sucursal->nombre : '')"
+        :subtitle="__('Documentos, mantenimientos, licencias y equipamiento que requieren atención') . (! auth()->user()->puedeVerTodo() && auth()->user()->sucursal ? ' — ' . auth()->user()->sucursal->nombre : '')"
         :breadcrumbs="[
             ['label' => __('Dashboard'), 'href' => route('dashboard')],
             ['label' => __('Alertas')],
@@ -98,7 +104,7 @@ new #[Title('Alertas')] class extends Component {
     />
 
     {{-- Resumen badges --}}
-    <div class="grid grid-cols-3 gap-2 sm:gap-3">
+    <div class="grid grid-cols-4 gap-2 sm:gap-3">
 
         <button
             wire:click="$set('tab', 'documentos')"
@@ -176,6 +182,33 @@ new #[Title('Alertas')] class extends Component {
             </p>
             <p class="truncate text-[11px] sm:text-xs {{ $this->licencias->isNotEmpty() ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500' }}">
                 {{ __('Licencias') }}
+            </p>
+        </button>
+
+        <button
+            wire:click="$set('tab', 'equipamiento')"
+            @class([
+                'rounded-xl border p-3 text-center transition-colors sm:p-4 sm:text-left',
+                'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950' => $tab === 'equipamiento',
+                'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/50' => $tab !== 'equipamiento',
+            ])
+        >
+            <div class="flex items-center justify-center gap-2 sm:justify-between">
+                <flux:icon name="shield-check" @class([
+                    'size-5',
+                    'text-amber-500' => $this->equipamiento->isNotEmpty(),
+                    'text-zinc-400' => $this->equipamiento->isEmpty(),
+                ]) />
+                @if ($this->equipamiento->isNotEmpty())
+                    <flux:badge color="amber" size="sm" class="hidden sm:inline-flex">{{ $this->equipamiento->count() }}</flux:badge>
+                @endif
+            </div>
+            <p class="mt-2 text-2xl font-bold {{ $this->equipamiento->isNotEmpty() ? 'text-amber-700 dark:text-amber-300' : 'text-zinc-700 dark:text-zinc-300' }}">
+                {{ $this->equipamiento->count() }}
+            </p>
+            <p class="truncate text-[11px] sm:text-xs {{ $this->equipamiento->isNotEmpty() ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500' }}">
+                {{ __('Equip.') }}
+                <span class="hidden sm:inline">{{ __('amiento') }}</span>
             </p>
         </button>
 
@@ -318,10 +351,14 @@ new #[Title('Alertas')] class extends Component {
     @if ($tab === 'mantenimientos')
         <div>
             <h2 class="mb-3 text-sm font-semibold text-zinc-500 uppercase tracking-wide">
-                {{ __('Mantenimientos urgentes') }}
+                {{ __('Mantenimientos por kilometraje') }}
             </h2>
             <flux:text class="mb-4 text-xs">
-                {{ __('Próxima fecha ≤ 30 días o km restantes ≤ 1,000.') }}
+                {{ __('Vehículos con ≤ 300 km restantes para el próximo servicio.') }}
+                <span class="ml-2 inline-flex gap-2">
+                    <span class="inline-flex items-center gap-1"><span class="size-2 rounded-full bg-red-500 inline-block"></span> ≤ 100 km</span>
+                    <span class="inline-flex items-center gap-1"><span class="size-2 rounded-full bg-amber-400 inline-block"></span> 101–300 km</span>
+                </span>
             </flux:text>
 
             @if ($this->mantenimientos->isNotEmpty())
@@ -333,25 +370,20 @@ new #[Title('Alertas')] class extends Component {
                             @if (auth()->user()->puedeVerTodo())
                                 <flux:table.column>{{ __('Sucursal') }}</flux:table.column>
                             @endif
-                            <flux:table.column>{{ __('Próxima fecha') }}</flux:table.column>
-                            <flux:table.column>{{ __('Próx. km') }}</flux:table.column>
                             <flux:table.column>{{ __('Km actuales') }}</flux:table.column>
+                            <flux:table.column>{{ __('Próx. servicio') }}</flux:table.column>
+                            <flux:table.column>{{ __('Km restantes') }}</flux:table.column>
                             <flux:table.column></flux:table.column>
                         </flux:table.columns>
                         <flux:table.rows>
                             @foreach ($this->mantenimientos as $mant)
                                 @php
-                                    $diasMant   = $mant->proxima_fecha ? $this->diasRestantes($mant->proxima_fecha) : null;
-                                    $colorFecha = $diasMant !== null
-                                        ? ($diasMant < 0 ? 'red' : 'amber')
-                                        : null;
                                     $kmActuales  = $mant->vehiculo?->km_actuales;
-                                    $kmRestantes = ($mant->proximo_km && $kmActuales)
+                                    $kmRestantes = ($mant->proximo_km && $kmActuales !== null)
                                         ? $mant->proximo_km - $kmActuales
                                         : null;
-                                    $colorKm = $kmRestantes !== null
-                                        ? ($kmRestantes <= 0 ? 'red' : 'amber')
-                                        : null;
+                                    $colorKm = $kmRestantes === null ? 'zinc'
+                                        : ($kmRestantes <= 100 ? 'red' : 'amber');
                                 @endphp
                                 <flux:table.row :key="$mant->id">
                                     <flux:table.cell class="font-mono font-semibold text-sm">
@@ -369,42 +401,19 @@ new #[Title('Alertas')] class extends Component {
                                             {{ $mant->vehiculo?->sucursal?->nombre ?? '—' }}
                                         </flux:table.cell>
                                     @endif
-                                    <flux:table.cell>
-                                        @if ($mant->proxima_fecha && $colorFecha)
-                                            <flux:badge :color="$colorFecha" size="sm">
-                                                {{ $mant->proxima_fecha->format('d/m/Y') }}
-                                                @if ($diasMant < 0)
-                                                    ({{ abs($diasMant) }}d vencido)
-                                                @elseif ($diasMant === 0)
-                                                    (hoy)
-                                                @else
-                                                    (en {{ $diasMant }}d)
-                                                @endif
-                                            </flux:badge>
-                                        @elseif ($mant->proxima_fecha)
-                                            <span class="text-sm text-zinc-500">{{ $mant->proxima_fecha->format('d/m/Y') }}</span>
-                                        @else
-                                            <span class="text-zinc-400 text-sm">—</span>
-                                        @endif
+                                    <flux:table.cell class="font-mono text-sm text-zinc-500">
+                                        {{ $kmActuales !== null ? number_format($kmActuales) . ' km' : '—' }}
                                     </flux:table.cell>
-                                    <flux:table.cell>
-                                        @if ($mant->proximo_km)
-                                            <span class="text-sm">{{ number_format($mant->proximo_km) }} km</span>
-                                        @else
-                                            <span class="text-zinc-400 text-sm">—</span>
-                                        @endif
+                                    <flux:table.cell class="font-mono text-sm">
+                                        {{ $mant->proximo_km ? number_format($mant->proximo_km) . ' km' : '—' }}
                                     </flux:table.cell>
                                     <flux:table.cell>
                                         @if ($kmRestantes !== null)
                                             <flux:badge :color="$colorKm" size="sm">
-                                                @if ($kmRestantes <= 0)
-                                                    {{ number_format(abs($kmRestantes)) }} km excedido
-                                                @else
-                                                    {{ number_format($kmRestantes) }} km rest.
-                                                @endif
+                                                {{ $kmRestantes <= 0
+                                                    ? number_format(abs($kmRestantes)) . ' km excedido'
+                                                    : number_format($kmRestantes) . ' km' }}
                                             </flux:badge>
-                                        @elseif ($kmActuales)
-                                            <span class="text-sm text-zinc-500">{{ number_format($kmActuales) }} km</span>
                                         @else
                                             <span class="text-zinc-400 text-sm">—</span>
                                         @endif
@@ -429,36 +438,32 @@ new #[Title('Alertas')] class extends Component {
                 <div class="sm:hidden space-y-3">
                     @foreach ($this->mantenimientos as $mant)
                         @php
-                            $diasMant   = $mant->proxima_fecha ? $this->diasRestantes($mant->proxima_fecha) : null;
-                            $colorFecha = $diasMant !== null ? ($diasMant < 0 ? 'red' : 'amber') : null;
                             $kmActuales  = $mant->vehiculo?->km_actuales;
-                            $kmRestantes = ($mant->proximo_km && $kmActuales) ? $mant->proximo_km - $kmActuales : null;
-                            $colorKm = $kmRestantes !== null ? ($kmRestantes <= 0 ? 'red' : 'amber') : null;
+                            $kmRestantes = ($mant->proximo_km && $kmActuales !== null)
+                                ? $mant->proximo_km - $kmActuales : null;
+                            $colorKm = $kmRestantes === null ? 'zinc'
+                                : ($kmRestantes <= 100 ? 'red' : 'amber');
                         @endphp
                         <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-4">
                             <div class="flex items-start justify-between gap-2">
                                 <div class="min-w-0 flex-1">
                                     <div class="flex flex-wrap items-center gap-2">
                                         <span class="font-mono font-semibold text-sm">{{ $mant->vehiculo?->placa ?? '—' }}</span>
-                                        <span class="text-xs text-zinc-500">{{ $this->categoriaMantenimientoLabel($mant->categoria) }}</span>
-                                    </div>
-                                    <div class="mt-1 flex flex-wrap gap-1.5">
-                                        @if ($mant->proxima_fecha && $colorFecha)
-                                            <flux:badge :color="$colorFecha" size="sm">
-                                                {{ $mant->proxima_fecha->format('d/m/Y') }}
-                                                @if ($diasMant < 0)({{ abs($diasMant) }}d venc.)@elseif($diasMant === 0)(hoy)@else(en {{ $diasMant }}d)@endif
-                                            </flux:badge>
-                                        @endif
                                         @if ($kmRestantes !== null)
                                             <flux:badge :color="$colorKm" size="sm">
-                                                @if ($kmRestantes <= 0)
-                                                    {{ number_format(abs($kmRestantes)) }} km excedido
-                                                @else
-                                                    {{ number_format($kmRestantes) }} km rest.
-                                                @endif
+                                                {{ $kmRestantes <= 0
+                                                    ? number_format(abs($kmRestantes)) . ' km excedido'
+                                                    : number_format($kmRestantes) . ' km rest.' }}
                                             </flux:badge>
                                         @endif
                                     </div>
+                                    <p class="mt-1 text-xs text-zinc-500">
+                                        {{ $this->categoriaMantenimientoLabel($mant->categoria) }} · {{ ucfirst($mant->tipo) }}
+                                    </p>
+                                    <p class="mt-0.5 text-xs text-zinc-400 font-mono">
+                                        {{ $kmActuales !== null ? number_format($kmActuales) . ' km actuales' : '' }}
+                                        @if ($mant->proximo_km) → {{ number_format($mant->proximo_km) }} km @endif
+                                    </p>
                                     @if (auth()->user()->puedeVerTodo() && $mant->vehiculo?->sucursal)
                                         <p class="mt-1 text-xs text-zinc-400">{{ $mant->vehiculo->sucursal->nombre }}</p>
                                     @endif
@@ -477,7 +482,7 @@ new #[Title('Alertas')] class extends Component {
             @else
                 <div class="py-12 text-center rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700">
                     <flux:icon name="check-circle" class="mx-auto mb-3 size-10 text-emerald-400" />
-                    <flux:text>{{ __('Sin mantenimientos urgentes en los próximos 30 días o ≤ 1,000 km.') }}</flux:text>
+                    <flux:text>{{ __('Sin mantenimientos con ≤ 300 km restantes.') }}</flux:text>
                 </div>
             @endif
         </div>
@@ -584,6 +589,126 @@ new #[Title('Alertas')] class extends Component {
                 <div class="py-12 text-center rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700">
                     <flux:icon name="check-circle" class="mx-auto mb-3 size-10 text-emerald-400" />
                     <flux:text>{{ __('Sin licencias por vencer en los próximos 30 días.') }}</flux:text>
+                </div>
+            @endif
+        </div>
+    @endif
+
+    {{-- Tab: Equipamiento --}}
+    @if ($tab === 'equipamiento')
+        <div>
+            <h2 class="mb-3 text-sm font-semibold text-zinc-500 uppercase tracking-wide">
+                {{ __('Extintores por vencer') }}
+            </h2>
+            <flux:text class="mb-4 text-xs">
+                {{ __('Extintores con vencimiento dentro de los próximos 30 días.') }}
+            </flux:text>
+
+            @if ($this->equipamiento->isNotEmpty())
+                <div class="overflow-x-auto hidden sm:block rounded-xl border border-slate-200 bg-white px-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <flux:table>
+                        <flux:table.columns>
+                            <flux:table.column>{{ __('Vehículo') }}</flux:table.column>
+                            <flux:table.column>{{ __('Ítem') }}</flux:table.column>
+                            @if (auth()->user()->puedeVerTodo())
+                                <flux:table.column>{{ __('Sucursal') }}</flux:table.column>
+                            @endif
+                            <flux:table.column>{{ __('Vencimiento') }}</flux:table.column>
+                            <flux:table.column>{{ __('Estado') }}</flux:table.column>
+                            <flux:table.column></flux:table.column>
+                        </flux:table.columns>
+                        <flux:table.rows>
+                            @foreach ($this->equipamiento as $equip)
+                                @php
+                                    $dias  = $this->diasRestantes($equip->vencimiento);
+                                    $color = $equip->vencimiento?->isPast() ? 'red' : 'amber';
+                                @endphp
+                                <flux:table.row :key="$equip->id">
+                                    <flux:table.cell class="font-mono font-semibold text-sm">
+                                        {{ $equip->vehiculo?->placa ?? '—' }}
+                                        <span class="block font-normal font-sans text-xs text-zinc-500">
+                                            {{ $equip->vehiculo?->marca }} {{ $equip->vehiculo?->modelo }}
+                                        </span>
+                                    </flux:table.cell>
+                                    <flux:table.cell class="text-sm">
+                                        {{ $equip->item->label() }}
+                                    </flux:table.cell>
+                                    @if (auth()->user()->puedeVerTodo())
+                                        <flux:table.cell class="text-sm">
+                                            {{ $equip->vehiculo?->sucursal?->nombre ?? '—' }}
+                                        </flux:table.cell>
+                                    @endif
+                                    <flux:table.cell class="text-sm font-medium">
+                                        {{ $equip->vencimiento?->format('d/m/Y') }}
+                                    </flux:table.cell>
+                                    <flux:table.cell>
+                                        <flux:badge :color="$color" size="sm">
+                                            @if ($dias === null) —
+                                            @elseif ($dias < 0) {{ __('Vencido hace') }} {{ abs($dias) }}d
+                                            @elseif ($dias === 0) {{ __('Vence hoy') }}
+                                            @else {{ __('Vence en') }} {{ $dias }}d
+                                            @endif
+                                        </flux:badge>
+                                    </flux:table.cell>
+                                    <flux:table.cell>
+                                        @if ($equip->vehiculo)
+                                            <flux:button
+                                                :href="route('vehiculos.show', $equip->vehiculo) . '?tab=equipamiento'"
+                                                size="sm" variant="ghost" icon="arrow-right"
+                                                inset="top bottom"
+                                                wire:navigate
+                                            />
+                                        @endif
+                                    </flux:table.cell>
+                                </flux:table.row>
+                            @endforeach
+                        </flux:table.rows>
+                    </flux:table>
+                </div>
+
+                {{-- Mobile --}}
+                <div class="sm:hidden space-y-3">
+                    @foreach ($this->equipamiento as $equip)
+                        @php
+                            $dias  = $this->diasRestantes($equip->vencimiento);
+                            $color = $equip->vencimiento?->isPast() ? 'red' : 'amber';
+                        @endphp
+                        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-4">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="font-mono font-semibold text-sm">{{ $equip->vehiculo?->placa ?? '—' }}</span>
+                                        <flux:badge :color="$color" size="sm">
+                                            @if ($dias === null) —
+                                            @elseif ($dias < 0) Vencido hace {{ abs($dias) }}d
+                                            @elseif ($dias === 0) Vence hoy
+                                            @else Vence en {{ $dias }}d
+                                            @endif
+                                        </flux:badge>
+                                    </div>
+                                    <p class="mt-1 text-xs text-zinc-500">{{ $equip->item->label() }}</p>
+                                    <p class="mt-0.5 text-xs text-zinc-400">
+                                        {{ $equip->vencimiento?->format('d/m/Y') }}
+                                        @if (auth()->user()->puedeVerTodo() && $equip->vehiculo?->sucursal)
+                                            · {{ $equip->vehiculo->sucursal->nombre }}
+                                        @endif
+                                    </p>
+                                </div>
+                                @if ($equip->vehiculo)
+                                    <flux:button
+                                        :href="route('vehiculos.show', $equip->vehiculo) . '?tab=equipamiento'"
+                                        size="sm" variant="ghost" icon="arrow-right"
+                                        wire:navigate
+                                    />
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="py-12 text-center rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700">
+                    <flux:icon name="shield-check" class="mx-auto mb-3 size-10 text-emerald-400" />
+                    <flux:text>{{ __('Sin extintores por vencer en los próximos 30 días.') }}</flux:text>
                 </div>
             @endif
         </div>
