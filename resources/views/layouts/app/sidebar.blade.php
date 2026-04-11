@@ -99,6 +99,28 @@
 
             <flux:spacer />
 
+            {{-- Toggle apariencia --}}
+            <div x-data class="px-2 pb-1 hidden lg:block">
+                <button
+                    type="button"
+                    x-on:click="$flux.appearance = $flux.appearance === 'light' ? 'dark' : ($flux.appearance === 'dark' ? 'system' : 'light')"
+                    class="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-800/5 dark:text-zinc-400 dark:hover:bg-white/10"
+                >
+                    <span x-show="$flux.appearance === 'light'" class="shrink-0">
+                        <flux:icon name="sun" class="size-5" />
+                    </span>
+                    <span x-show="$flux.appearance === 'dark'" class="shrink-0">
+                        <flux:icon name="moon" class="size-5" />
+                    </span>
+                    <span x-show="$flux.appearance !== 'light' && $flux.appearance !== 'dark'" class="shrink-0">
+                        <flux:icon name="computer-desktop" class="size-5" />
+                    </span>
+                    <span x-show="$flux.appearance === 'light'">{{ __('Modo claro') }}</span>
+                    <span x-show="$flux.appearance === 'dark'">{{ __('Modo oscuro') }}</span>
+                    <span x-show="$flux.appearance !== 'light' && $flux.appearance !== 'dark'">{{ __('Sistema') }}</span>
+                </button>
+            </div>
+
             <x-desktop-user-menu class="hidden lg:block" />
         </flux:sidebar>
 
@@ -134,6 +156,18 @@
                         <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>
                             {{ __('Ajustes') }}
                         </flux:menu.item>
+                        <div x-data>
+                            <flux:menu.item
+                                as="button"
+                                type="button"
+                                icon="sun"
+                                x-on:click="$flux.appearance = $flux.appearance === 'light' ? 'dark' : ($flux.appearance === 'dark' ? 'system' : 'light')"
+                            >
+                                <span x-show="$flux.appearance === 'light'">{{ __('Modo claro') }}</span>
+                                <span x-show="$flux.appearance === 'dark'">{{ __('Modo oscuro') }}</span>
+                                <span x-show="$flux.appearance !== 'light' && $flux.appearance !== 'dark'">{{ __('Sistema') }}</span>
+                            </flux:menu.item>
+                        </div>
                     </flux:menu.radio.group>
 
                     <flux:menu.separator />
