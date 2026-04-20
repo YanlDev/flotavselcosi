@@ -29,13 +29,21 @@ class VehiculoFichaPdfController extends Controller
         try {
             $vehiculo->load('sucursal', 'conductor', 'creadoPor');
 
-            $fotos = FotoVehiculo::where('vehiculo_id', $vehiculo->id)
-                ->whereIn('categoria', ['frontal', 'lateral_der', 'lateral_izq', 'trasera'])
-                ->get()
-                ->groupBy('categoria')
-                ->map(fn ($grupo) => $grupo->first());
+            // Flag de diagnóstico: ?sin_fotos=1 salta la descarga S3 + embed base64.
+            // Útil para aislar si el 502/OOM viene de las imágenes o del render DomPDF.
+            $sinFotos = $request->boolean('sin_fotos');
 
-            $fotosBase64 = $fotos->map(fn (FotoVehiculo $f) => $this->leerComoBase64($storage, $f->thumbnail_key ?? $f->key));
+            if ($sinFotos) {
+                $fotosBase64 = collect();
+            } else {
+                $fotos = FotoVehiculo::where('vehiculo_id', $vehiculo->id)
+                    ->whereIn('categoria', ['frontal', 'lateral_der', 'lateral_izq', 'trasera'])
+                    ->get()
+                    ->groupBy('categoria')
+                    ->map(fn ($grupo) => $grupo->first());
+
+                $fotosBase64 = $fotos->map(fn (FotoVehiculo $f) => $this->leerComoBase64($storage, $f->thumbnail_key ?? $f->key));
+            }
 
             $ultimoMantenimiento = Mantenimiento::where('vehiculo_id', $vehiculo->id)
                 ->orderByDesc('fecha_servicio')
