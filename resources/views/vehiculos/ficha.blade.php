@@ -80,7 +80,7 @@
         }
 
         .header-logo { flex: 1; }
-        .header-logo img { max-height: 56px; max-width: 260px; }
+        .header-logo img { max-height: 64px; max-width: 220px; display: block; }
         .brand-text { color: #16a34a; font-size: 18px; font-weight: 900; letter-spacing: 1px; }
         .brand-sub { color: #6b7280; font-size: 10px; margin-top: 2px; }
 

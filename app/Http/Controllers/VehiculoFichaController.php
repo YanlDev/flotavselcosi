@@ -54,12 +54,16 @@ class VehiculoFichaController extends Controller
      */
     private function logoUrl(): ?string
     {
-        if (is_file(public_path('images/logo-selcosi.png'))) {
-            return asset('images/logo-selcosi.png');
-        }
+        $candidatos = [
+            'logo-selcosi-verde.png',
+            'images/logo-selcosi.png',
+            'selcosilog.png',
+        ];
 
-        if (is_file(public_path('selcosilog.png'))) {
-            return asset('selcosilog.png');
+        foreach ($candidatos as $ruta) {
+            if (is_file(public_path($ruta))) {
+                return asset($ruta);
+            }
         }
 
         return null;
