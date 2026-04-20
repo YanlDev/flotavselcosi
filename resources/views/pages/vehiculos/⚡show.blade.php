@@ -100,40 +100,51 @@ new #[Title('Detalle vehículo')] class extends Component {
             <span class="hidden sm:inline">{{ __('Vehículos') }}</span>
         </flux:button>
 
-        @if (auth()->user()->esAdmin())
-            {{-- Desktop: botones visibles --}}
-            <div class="hidden sm:flex gap-2">
-                <flux:button
-                    :href="route('vehiculos.editar', $vehiculo)"
-                    variant="outline" icon="pencil" size="sm"
-                    wire:navigate
-                >{{ __('Editar') }}</flux:button>
-                <flux:button
-                    wire:click="$set('showDeleteModal', true)"
-                    variant="danger" icon="trash" size="sm"
-                >{{ __('Eliminar') }}</flux:button>
-            </div>
+        <div class="flex gap-2">
+            {{-- Descargar ficha PDF — visible para todos con permiso de ver --}}
+            <flux:button
+                :href="route('vehiculos.ficha', $vehiculo)"
+                variant="outline" icon="document-arrow-down" size="sm"
+                target="_blank"
+            >
+                <span class="hidden sm:inline">{{ __('Descargar ficha') }}</span>
+            </flux:button>
 
-            {{-- Mobile: dropdown --}}
-            <div class="sm:hidden">
-                <flux:dropdown position="bottom" align="end">
-                    <flux:button variant="ghost" icon="ellipsis-vertical" size="sm" />
-                    <flux:menu>
-                        <flux:menu.item
-                            :href="route('vehiculos.editar', $vehiculo)"
-                            icon="pencil"
-                            wire:navigate
-                        >{{ __('Editar') }}</flux:menu.item>
-                        <flux:menu.separator />
-                        <flux:menu.item
-                            wire:click="$set('showDeleteModal', true)"
-                            icon="trash"
-                            variant="danger"
-                        >{{ __('Eliminar') }}</flux:menu.item>
-                    </flux:menu>
-                </flux:dropdown>
-            </div>
-        @endif
+            @if (auth()->user()->esAdmin())
+                {{-- Desktop: botones visibles --}}
+                <div class="hidden sm:flex gap-2">
+                    <flux:button
+                        :href="route('vehiculos.editar', $vehiculo)"
+                        variant="outline" icon="pencil" size="sm"
+                        wire:navigate
+                    >{{ __('Editar') }}</flux:button>
+                    <flux:button
+                        wire:click="$set('showDeleteModal', true)"
+                        variant="danger" icon="trash" size="sm"
+                    >{{ __('Eliminar') }}</flux:button>
+                </div>
+
+                {{-- Mobile: dropdown --}}
+                <div class="sm:hidden">
+                    <flux:dropdown position="bottom" align="end">
+                        <flux:button variant="ghost" icon="ellipsis-vertical" size="sm" />
+                        <flux:menu>
+                            <flux:menu.item
+                                :href="route('vehiculos.editar', $vehiculo)"
+                                icon="pencil"
+                                wire:navigate
+                            >{{ __('Editar') }}</flux:menu.item>
+                            <flux:menu.separator />
+                            <flux:menu.item
+                                wire:click="$set('showDeleteModal', true)"
+                                icon="trash"
+                                variant="danger"
+                            >{{ __('Eliminar') }}</flux:menu.item>
+                        </flux:menu>
+                    </flux:dropdown>
+                </div>
+            @endif
+        </div>
     </div>
 
     {{-- Hero card --}}
