@@ -2,6 +2,7 @@
 
 use App\Models\RegistroCombustible;
 use App\Models\Vehiculo;
+use App\Services\AlertasService;
 use App\Services\StorageService;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -106,6 +107,8 @@ new class extends Component {
             'observaciones_envio' => $this->observacionesEnvio ?: null,
             'estado'              => 'pendiente',
         ]);
+
+        app(AlertasService::class)->invalidarCacheCombustible(auth()->user());
 
         unset($this->historial);
         $this->showCrearModal = false;

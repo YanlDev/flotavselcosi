@@ -6,6 +6,7 @@ use App\Models\Conductor;
 use App\Models\DocumentoVehicular;
 use App\Models\EquipamientoVehicular;
 use App\Models\Mantenimiento;
+use App\Models\RegistroCombustible;
 use App\Models\User;
 use App\Models\Vehiculo;
 use Illuminate\Database\Eloquent\Collection;
@@ -49,6 +50,7 @@ class AlertasService
         }
 
         $query = Mantenimiento::with(['vehiculo.sucursal'])
+            ->ultimoPorCategoria()
             ->whereHas('vehiculo', function ($q) use ($user) {
                 $q->when(! $user->puedeVerTodo(), fn ($v) => $v->where('sucursal_id', $user->sucursal_id));
             })
@@ -104,6 +106,27 @@ class AlertasService
     }
 
     /**
+     * Registros de combustible pendientes de revisión.
+     *
+     * - admin / visor: todos los pendientes visibles (scope forUser).
+     * - jefe_resguardo: solo sus propios envíos pendientes (para ver su backlog).
+     */
+    public function combustiblePendiente(User $user): int
+    {
+        return Cache::remember(
+            "alertas.combustible.{$user->id}",
+            300,
+            fn () => RegistroCombustible::pendientes()
+                ->when(
+                    $user->esJefeResguardo(),
+                    fn ($q) => $q->where('enviado_por', $user->id),
+                    fn ($q) => $q->forUser($user),
+                )
+                ->count()
+        );
+    }
+
+    /**
      * Total de alertas activas (para badge en sidebar). Cache 5 min.
      */
     public function totalAlertas(User $user): int
@@ -111,14 +134,37 @@ class AlertasService
         return Cache::remember("alertas.total.{$user->id}", 300, fn () => $this->documentosAlerta($user)->count()
             + $this->mantenimientosAlerta($user)->count()
             + $this->licenciasAlerta($user)->count()
-            + $this->equipamientoAlerta($user)->count());
+            + $this->equipamientoAlerta($user)->count()
+            + $this->combustiblePendiente($user));
     }
 
     /**
-     * Invalida el cache del badge para un usuario.
+     * Invalida el cache de badges para un usuario.
      */
     public function invalidarCache(User $user): void
     {
         Cache::forget("alertas.total.{$user->id}");
+        Cache::forget("alertas.combustible.{$user->id}");
+    }
+
+    /**
+     * Invalida el cache de combustible para TODOS los usuarios relevantes.
+     * Útil cuando se crea/aprueba/rechaza un registro: afecta el badge del jefe
+     * que lo envió y el de todos los admins/visores.
+     */
+    public function invalidarCacheCombustible(?User $envioPor = null): void
+    {
+        // Admin y visor ven el global — invalidamos a todos los que tienen ese rol
+        User::role(['admin', 'visor'])
+            ->pluck('id')
+            ->each(function (int $id) {
+                Cache::forget("alertas.combustible.{$id}");
+                Cache::forget("alertas.total.{$id}");
+            });
+
+        if ($envioPor !== null) {
+            Cache::forget("alertas.combustible.{$envioPor->id}");
+            Cache::forget("alertas.total.{$envioPor->id}");
+        }
     }
 }

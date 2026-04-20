@@ -31,18 +31,22 @@
                         {{ __('Vehículos') }}
                     </flux:sidebar.item>
 
+                    @php
+                        $alertas             = app(\App\Services\AlertasService::class);
+                        $combustiblePendiente = $alertas->combustiblePendiente(auth()->user());
+                        $totalAlertas        = $alertas->totalAlertas(auth()->user());
+                    @endphp
                     <flux:sidebar.item
                         icon="fire"
                         :href="route('combustible.index')"
                         :current="request()->routeIs('combustible.*')"
+                        :badge="$combustiblePendiente > 0 ? $combustiblePendiente : null"
+                        badge:color="amber"
                         wire:navigate
                     >
                         {{ __('Combustible') }}
                     </flux:sidebar.item>
 
-                    @php
-                        $totalAlertas = app(\App\Services\AlertasService::class)->totalAlertas(auth()->user());
-                    @endphp
                     <flux:sidebar.item
                         icon="bell"
                         :href="route('alertas.index')"

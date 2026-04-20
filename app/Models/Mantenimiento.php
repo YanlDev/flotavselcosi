@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\MantenimientoFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,5 +36,18 @@ class Mantenimiento extends Model
     public function registradoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'registrado_por');
+    }
+
+    /**
+     * Mantiene solo el registro más reciente por (vehiculo_id, categoria).
+     * Usa MAX(id) como desempate — el auto-increment crece en orden temporal.
+     */
+    public function scopeUltimoPorCategoria(Builder $query): Builder
+    {
+        return $query->whereIn('id', function ($sub) {
+            $sub->selectRaw('MAX(id)')
+                ->from('mantenimientos')
+                ->groupBy('vehiculo_id', 'categoria');
+        });
     }
 }

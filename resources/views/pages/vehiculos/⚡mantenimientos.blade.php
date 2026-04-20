@@ -54,6 +54,7 @@ new class extends Component {
         }
 
         return Mantenimiento::where('vehiculo_id', $this->vehiculo->id)
+            ->ultimoPorCategoria()
             ->whereNotNull('proximo_km')
             ->whereRaw('proximo_km - ? <= 300', [$kmActuales])
             ->get()
@@ -131,6 +132,10 @@ new class extends Component {
                 ->update($data);
         } else {
             Mantenimiento::create($data);
+        }
+
+        if ($data['km_servicio'] !== null && $this->vehiculo->actualizarKmSiEsMayor($data['km_servicio'])) {
+            $this->vehiculo->refresh();
         }
 
         unset($this->mantenimientos, $this->alertas);

@@ -97,4 +97,19 @@ class Vehiculo extends Model
     {
         return $query->where('estado', 'operativo');
     }
+
+    /**
+     * Actualiza km_actuales solo si el valor recibido es mayor al actual.
+     * Evita retrocesos por ediciones tardías o registros cargados fuera de orden.
+     */
+    public function actualizarKmSiEsMayor(int $km): bool
+    {
+        if ($km > ($this->km_actuales ?? 0)) {
+            $this->update(['km_actuales' => $km]);
+
+            return true;
+        }
+
+        return false;
+    }
 }

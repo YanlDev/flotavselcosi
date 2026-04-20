@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\RegistroCombustible;
+use App\Services\AlertasService;
 use App\Services\StorageService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -136,6 +137,12 @@ new #[Title('Detalle de carga')] class extends Component {
             'observaciones_revision'  => $this->observacionesRevision ?: null,
         ]);
 
+        $this->registroCombustible->vehiculo?->actualizarKmSiEsMayor((int) $this->kmAlCargar);
+
+        app(AlertasService::class)->invalidarCacheCombustible(
+            $this->registroCombustible->enviadoPor
+        );
+
         $this->registroCombustible->refresh();
     }
 
@@ -162,6 +169,10 @@ new #[Title('Detalle de carga')] class extends Component {
             'revisado_en'            => now(),
             'observaciones_revision' => $this->motivoRechazo ?: null,
         ]);
+
+        app(AlertasService::class)->invalidarCacheCombustible(
+            $this->registroCombustible->enviadoPor
+        );
 
         $this->registroCombustible->refresh();
         $this->showRechazarModal = false;
