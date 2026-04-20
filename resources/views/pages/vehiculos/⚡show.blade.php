@@ -101,13 +101,13 @@ new #[Title('Detalle vehículo')] class extends Component {
         </flux:button>
 
         <div class="flex gap-2">
-            {{-- Descargar ficha PDF — visible para todos con permiso de ver --}}
+            {{-- Ficha técnica imprimible --}}
             <flux:button
                 :href="route('vehiculos.ficha', $vehiculo)"
-                variant="outline" icon="document-arrow-down" size="sm"
+                variant="outline" icon="printer" size="sm"
                 target="_blank"
             >
-                <span class="hidden sm:inline">{{ __('Descargar ficha') }}</span>
+                <span class="hidden sm:inline">{{ __('Imprimir ficha') }}</span>
             </flux:button>
 
             @if (auth()->user()->esAdmin())

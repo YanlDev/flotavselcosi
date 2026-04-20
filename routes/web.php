@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\FotoVehiculoController;
-use App\Http\Controllers\VehiculoFichaPdfController;
+use App\Http\Controllers\VehiculoFichaController;
 use App\Models\Invitacion;
 use Illuminate\Support\Facades\Route;
 
@@ -39,8 +39,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('vehiculos/{vehiculo}/fotos/{foto}/thumbnail', [FotoVehiculoController::class, 'thumbnail'])->name('vehiculos.fotos.thumbnail');
     Route::get('vehiculos/{vehiculo}/fotos/{foto}/original', [FotoVehiculoController::class, 'original'])->name('vehiculos.fotos.original');
 
-    // Ficha técnica (PDF)
-    Route::get('vehiculos/{vehiculo}/ficha.pdf', VehiculoFichaPdfController::class)->name('vehiculos.ficha');
+    // Ficha técnica imprimible (HTML con print CSS — el usuario guarda como PDF desde el navegador)
+    Route::get('vehiculos/{vehiculo}/ficha', VehiculoFichaController::class)->name('vehiculos.ficha');
 
     // Combustible
     Route::livewire('combustible', 'pages::combustible.index')->name('combustible.index');
