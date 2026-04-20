@@ -21,38 +21,49 @@ class VehiculoFichaPdfController extends Controller
     {
         abort_unless($request->user()->can('view', $vehiculo), 403);
 
-        $vehiculo->load('sucursal', 'conductor', 'creadoPor');
+        // DomPDF + imágenes base64 + fuente DejaVu consume ~300-400MB.
+        // set_time_limit por los fetch S3 secuenciales.
+        ini_set('memory_limit', '512M');
+        set_time_limit(60);
 
-        $fotos = FotoVehiculo::where('vehiculo_id', $vehiculo->id)
-            ->whereIn('categoria', ['frontal', 'lateral_der', 'lateral_izq', 'trasera'])
-            ->get()
-            ->groupBy('categoria')
-            ->map(fn ($grupo) => $grupo->first());
+        try {
+            $vehiculo->load('sucursal', 'conductor', 'creadoPor');
 
-        $fotosBase64 = $fotos->map(fn (FotoVehiculo $f) => $this->leerComoBase64($storage, $f->thumbnail_key ?? $f->key));
+            $fotos = FotoVehiculo::where('vehiculo_id', $vehiculo->id)
+                ->whereIn('categoria', ['frontal', 'lateral_der', 'lateral_izq', 'trasera'])
+                ->get()
+                ->groupBy('categoria')
+                ->map(fn ($grupo) => $grupo->first());
 
-        $ultimoMantenimiento = Mantenimiento::where('vehiculo_id', $vehiculo->id)
-            ->orderByDesc('fecha_servicio')
-            ->first();
+            $fotosBase64 = $fotos->map(fn (FotoVehiculo $f) => $this->leerComoBase64($storage, $f->thumbnail_key ?? $f->key));
 
-        $documentos = DocumentoVehicular::where('vehiculo_id', $vehiculo->id)
-            ->whereNotNull('vencimiento')
-            ->orderBy('tipo')
-            ->get();
+            $ultimoMantenimiento = Mantenimiento::where('vehiculo_id', $vehiculo->id)
+                ->orderByDesc('fecha_servicio')
+                ->first();
 
-        $pdf = Pdf::loadView('pdf.vehiculo-ficha', [
-            'vehiculo' => $vehiculo,
-            'fotosBase64' => $fotosBase64,
-            'ultimoMantenimiento' => $ultimoMantenimiento,
-            'documentos' => $documentos,
-            'generadoPor' => $request->user(),
-            'generadoEn' => now(),
-            'logoBase64' => $this->logoBase64(),
-        ])->setPaper('a4', 'portrait');
+            $documentos = DocumentoVehicular::where('vehiculo_id', $vehiculo->id)
+                ->whereNotNull('vencimiento')
+                ->orderBy('tipo')
+                ->get();
 
-        $nombre = 'ficha-'.str($vehiculo->placa)->slug().'-'.now()->format('Ymd').'.pdf';
+            $pdf = Pdf::loadView('pdf.vehiculo-ficha', [
+                'vehiculo' => $vehiculo,
+                'fotosBase64' => $fotosBase64,
+                'ultimoMantenimiento' => $ultimoMantenimiento,
+                'documentos' => $documentos,
+                'generadoPor' => $request->user(),
+                'generadoEn' => now(),
+                'logoBase64' => $this->logoBase64(),
+            ])->setPaper('a4', 'portrait');
 
-        return $pdf->download($nombre);
+            $nombre = 'ficha-'.str($vehiculo->placa)->slug().'-'.now()->format('Ymd').'.pdf';
+
+            return $pdf->download($nombre);
+        } catch (\Throwable $e) {
+            report($e);
+
+            abort(500, 'No se pudo generar la ficha: '.$e->getMessage());
+        }
     }
 
     /**
