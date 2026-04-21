@@ -188,6 +188,7 @@ new #[Title('Vehículos')] class extends Component {
                     <flux:table.column>{{ __('Sucursal') }}</flux:table.column>
                 @endif
                 <flux:table.column>{{ __('Conductor') }}</flux:table.column>
+                <flux:table.column class="text-right">{{ __('Km') }}</flux:table.column>
                 <flux:table.column>{{ __('Estado') }}</flux:table.column>
                 <flux:table.column></flux:table.column>
             </flux:table.columns>
@@ -213,6 +214,10 @@ new #[Title('Vehículos')] class extends Component {
                         @endif
 
                         <flux:table.cell class="text-sm text-slate-600 dark:text-slate-300">{{ $vehiculo->conductor?->nombre_completo ?? '—' }}</flux:table.cell>
+
+                        <flux:table.cell class="text-right font-mono-data text-sm text-slate-700 dark:text-slate-200">
+                            {{ $vehiculo->km_actuales ? number_format($vehiculo->km_actuales).' km' : '—' }}
+                        </flux:table.cell>
 
                         <flux:table.cell>
                             <x-ui.badge-status :status="$vehiculo->estado" :label="$this->estadoLabel($vehiculo->estado)" />
@@ -273,6 +278,12 @@ new #[Title('Vehículos')] class extends Component {
                             <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
                                 <flux:icon name="building-office" class="inline size-3 mr-0.5" />
                                 {{ $vehiculo->sucursal->nombre }}
+                            </p>
+                        @endif
+                        @if ($vehiculo->km_actuales)
+                            <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
+                                <flux:icon name="map-pin" class="inline size-3 mr-0.5" />
+                                <span class="font-mono-data">{{ number_format($vehiculo->km_actuales) }} km</span>
                             </p>
                         @endif
                     </div>
