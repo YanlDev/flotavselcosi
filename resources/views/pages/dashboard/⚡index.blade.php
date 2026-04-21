@@ -6,6 +6,7 @@ use App\Models\Mantenimiento;
 use App\Models\RegistroCombustible;
 use App\Models\Sucursal;
 use App\Models\Vehiculo;
+use App\Services\AlertasService;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -44,6 +45,7 @@ new #[Title('Dashboard')] class extends Component {
 
         return Cache::remember($cacheKey, 300, function () use ($user) {
             $sucursalId = $user->puedeVerTodo() ? null : $user->sucursal_id;
+            $alertas = app(AlertasService::class);
 
             // Flota
             $baseFlota = Vehiculo::when($sucursalId, fn ($q) => $q->where('sucursal_id', $sucursalId));
@@ -62,41 +64,12 @@ new #[Title('Dashboard')] class extends Component {
             $galonesEsteMes = (clone $baseCombustible)->sum('galones');
             $montoEsteMes   = (clone $baseCombustible)->sum('monto_total');
 
-            // Documentos próximos a vencer (30 días) o vencidos
-            $docsAlerta = DocumentoVehicular::whereNotNull('vencimiento')
-                ->where('vencimiento', '<=', now()->addDays(30))
-                ->when($sucursalId, fn ($q) => $q->whereHas(
-                    'vehiculo',
-                    fn ($v) => $v->where('sucursal_id', $sucursalId)
-                ))
-                ->count();
-
-            // Mantenimientos urgentes (≤300 km restantes para el próximo servicio)
-            $kmActualesSubquery = Vehiculo::selectRaw('id, km_actuales')
-                ->when($sucursalId, fn ($q) => $q->where('sucursal_id', $sucursalId))
-                ->whereNotNull('km_actuales')
-                ->pluck('km_actuales', 'id');
-
-            $mantUrgentes = 0;
-            if ($kmActualesSubquery->isNotEmpty()) {
-                $mantUrgentes = Mantenimiento::whereHas('vehiculo', function ($q) use ($sucursalId) {
-                    $q->when($sucursalId, fn ($v) => $v->where('sucursal_id', $sucursalId));
-                })
-                    ->whereNotNull('proximo_km')
-                    ->where(function ($q) use ($kmActualesSubquery) {
-                        foreach ($kmActualesSubquery as $vehiculoId => $kmActuales) {
-                            $q->orWhere(function ($q2) use ($vehiculoId, $kmActuales) {
-                                $q2->where('vehiculo_id', $vehiculoId)
-                                    ->whereRaw('proximo_km - ? <= 300', [$kmActuales]);
-                            });
-                        }
-                    })
-                    ->count();
-            }
-
-            // Combustible pendiente de revisión (admin y visor)
+            // Alertas — se delegan al AlertasService para mantener una sola
+            // fuente de verdad con la página de Alertas y el sidebar.
+            $docsAlerta           = $alertas->documentosAlerta($user)->count();
+            $mantUrgentes         = $alertas->mantenimientosAlerta($user)->count();
             $combustiblePendiente = $user->puedeVerTodo()
-                ? RegistroCombustible::where('estado', 'pendiente')->count()
+                ? $alertas->combustiblePendiente($user)
                 : null;
 
             return compact(

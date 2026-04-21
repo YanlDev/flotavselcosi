@@ -139,12 +139,13 @@ class AlertasService
     }
 
     /**
-     * Invalida el cache de badges para un usuario.
+     * Invalida el cache de badges + KPIs del dashboard para un usuario.
      */
     public function invalidarCache(User $user): void
     {
         Cache::forget("alertas.total.{$user->id}");
         Cache::forget("alertas.combustible.{$user->id}");
+        Cache::forget("dashboard.kpis.{$user->id}");
     }
 
     /**
@@ -160,11 +161,13 @@ class AlertasService
             ->each(function (int $id) {
                 Cache::forget("alertas.combustible.{$id}");
                 Cache::forget("alertas.total.{$id}");
+                Cache::forget("dashboard.kpis.{$id}");
             });
 
         if ($envioPor !== null) {
             Cache::forget("alertas.combustible.{$envioPor->id}");
             Cache::forget("alertas.total.{$envioPor->id}");
+            Cache::forget("dashboard.kpis.{$envioPor->id}");
         }
     }
 }
