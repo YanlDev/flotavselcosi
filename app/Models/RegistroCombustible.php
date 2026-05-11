@@ -50,12 +50,12 @@ class RegistroCombustible extends Model
 
     public function scopePendientes(Builder $query): Builder
     {
-        return $query->where('estado', 'pendiente');
+        return $query->where($this->qualifyColumn('estado'), 'pendiente');
     }
 
     public function scopeAprobados(Builder $query): Builder
     {
-        return $query->where('estado', 'aprobado');
+        return $query->where($this->qualifyColumn('estado'), 'aprobado');
     }
 
     public function scopeForUser(Builder $query, User $user): Builder
@@ -64,6 +64,6 @@ class RegistroCombustible extends Model
             return $query;
         }
 
-        return $query->where('sucursal_id', $user->sucursal_id);
+        return $query->where($this->qualifyColumn('sucursal_id'), $user->sucursal_id);
     }
 }

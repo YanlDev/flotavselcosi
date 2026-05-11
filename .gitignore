@@ -30,3 +30,7 @@ PLAN.md
 
 # Tests
 /tests
+
+# Backups de BD
+*.dump
+*.sql

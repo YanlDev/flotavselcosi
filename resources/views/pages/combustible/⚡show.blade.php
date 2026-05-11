@@ -31,6 +31,9 @@ new #[Title('Detalle de carga')] class extends Component {
     public bool $showRechazarModal = false;
     public string $motivoRechazo = '';
 
+    // Edición admin (post-aprobación)
+    public bool $editando = false;
+
     public function mount(RegistroCombustible $registroCombustible): void
     {
         // Solo admin, jefe_resguardo o el usuario que lo envió puede ver
@@ -144,6 +147,69 @@ new #[Title('Detalle de carga')] class extends Component {
         );
 
         $this->registroCombustible->refresh();
+    }
+
+    public function iniciarEdicion(): void
+    {
+        abort_unless(auth()->user()->esAdmin(), 403);
+        abort_unless($this->registroCombustible->estado === 'aprobado', 422);
+
+        $this->fechaCarga = $this->registroCombustible->fecha_carga?->format('Y-m-d') ?? '';
+        $this->kmAlCargar = (string) ($this->registroCombustible->km_al_cargar ?? '');
+        $this->galones = (string) ($this->registroCombustible->galones ?? '');
+        $this->precioGalon = (string) ($this->registroCombustible->precio_galon ?? '');
+        $this->montoTotal = (string) ($this->registroCombustible->monto_total ?? '');
+        $this->tipoCombustible = $this->registroCombustible->tipo_combustible ?? '';
+        $this->proveedor = $this->registroCombustible->proveedor ?? '';
+        $this->numeroVoucher = $this->registroCombustible->numero_voucher ?? '';
+        $this->observacionesRevision = $this->registroCombustible->observaciones_revision ?? '';
+
+        $this->editando = true;
+    }
+
+    public function cancelarEdicion(): void
+    {
+        $this->editando = false;
+        $this->resetValidation();
+    }
+
+    public function guardarEdicion(): void
+    {
+        abort_unless(auth()->user()->esAdmin(), 403);
+        abort_unless($this->registroCombustible->estado === 'aprobado', 422);
+
+        $this->validate([
+            'fechaCarga' => ['required', 'date'],
+            'kmAlCargar' => ['required', 'integer', 'min:0'],
+            'galones' => ['required', 'numeric', 'min:0.001'],
+            'precioGalon' => ['required', 'numeric', 'min:0.001'],
+            'montoTotal' => ['required', 'numeric', 'min:0.01'],
+            'tipoCombustible' => ['required', 'in:gasolina,diesel,glp,gnv,electrico,hibrido'],
+            'proveedor' => ['nullable', 'string', 'max:200'],
+            'numeroVoucher' => ['nullable', 'string', 'max:100'],
+            'observacionesRevision' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $this->registroCombustible->update([
+            'fecha_carga' => $this->fechaCarga,
+            'km_al_cargar' => (int) $this->kmAlCargar,
+            'galones' => $this->galones,
+            'precio_galon' => $this->precioGalon,
+            'monto_total' => $this->montoTotal,
+            'tipo_combustible' => $this->tipoCombustible,
+            'proveedor' => $this->proveedor ?: null,
+            'numero_voucher' => $this->numeroVoucher ?: null,
+            'observaciones_revision' => $this->observacionesRevision ?: null,
+        ]);
+
+        $this->registroCombustible->vehiculo?->actualizarKmSiEsMayor((int) $this->kmAlCargar);
+
+        app(AlertasService::class)->invalidarCacheCombustible(
+            $this->registroCombustible->enviadoPor
+        );
+
+        $this->registroCombustible->refresh();
+        $this->editando = false;
     }
 
     public function abrirRechazar(): void
@@ -278,11 +344,21 @@ new #[Title('Detalle de carga')] class extends Component {
             </x-ui.section-card>
 
             {{-- Datos aprobados (solo si aprobado) --}}
-            @if ($registroCombustible->estado === 'aprobado')
+            @if ($registroCombustible->estado === 'aprobado' && ! $editando)
                 <div class="rounded-xl border border-brand-200 bg-brand-50 p-5 space-y-3 dark:border-brand-800 dark:bg-brand-950/40">
-                    <h3 class="text-sm font-semibold text-brand-700 dark:text-brand-400">
-                        {{ __('Datos de la carga') }}
-                    </h3>
+                    <div class="flex items-center justify-between gap-2">
+                        <h3 class="text-sm font-semibold text-brand-700 dark:text-brand-400">
+                            {{ __('Datos de la carga') }}
+                        </h3>
+                        @if (auth()->user()->esAdmin())
+                            <flux:button
+                                size="sm" variant="ghost" icon="pencil"
+                                wire:click="iniciarEdicion"
+                            >
+                                {{ __('Editar') }}
+                            </flux:button>
+                        @endif
+                    </div>
                     <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                         <dt class="text-slate-500 dark:text-slate-400">{{ __('Fecha carga') }}</dt>
                         <dd class="font-mono-data">{{ $registroCombustible->fecha_carga?->format('d/m/Y') ?? '—' }}</dd>
@@ -324,6 +400,54 @@ new #[Title('Detalle de carga')] class extends Component {
                         </div>
                     @endif
                 </div>
+            @endif
+
+            {{-- Edición admin (carga aprobada) --}}
+            @if ($registroCombustible->estado === 'aprobado' && $editando && auth()->user()->esAdmin())
+                <x-ui.section-card :title="__('Editar carga aprobada')">
+                    <form wire:submit="guardarEdicion" class="space-y-4">
+
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <flux:input wire:model="fechaCarga" :label="__('Fecha de carga')" type="date" required />
+                            <flux:input wire:model="kmAlCargar" :label="__('Km al cargar')" type="number" min="0" required />
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <flux:input wire:model.live="galones" :label="__('Galones')" type="number" step="0.001" min="0" required />
+                            <flux:input wire:model.live="precioGalon" :label="__('Precio / galón (S/)')" type="number" step="0.001" min="0" required />
+                            <flux:input wire:model="montoTotal" :label="__('Monto total (S/)')" type="number" step="0.01" min="0" required />
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <flux:select wire:model="tipoCombustible" :label="__('Tipo de combustible')" required>
+                                <flux:select.option value="gasolina">{{ __('Gasolina') }}</flux:select.option>
+                                <flux:select.option value="diesel">{{ __('Diésel') }}</flux:select.option>
+                                <flux:select.option value="glp">{{ __('GLP') }}</flux:select.option>
+                                <flux:select.option value="gnv">{{ __('GNV') }}</flux:select.option>
+                                <flux:select.option value="electrico">{{ __('Eléctrico') }}</flux:select.option>
+                                <flux:select.option value="hibrido">{{ __('Híbrido') }}</flux:select.option>
+                            </flux:select>
+                            <flux:input wire:model="proveedor" :label="__('Proveedor (opcional)')" />
+                        </div>
+
+                        <flux:input wire:model="numeroVoucher" :label="__('N° voucher (opcional)')" />
+
+                        <flux:textarea wire:model="observacionesRevision" :label="__('Observaciones (opcional)')" rows="2" />
+
+                        <div class="flex justify-end gap-2 pt-2">
+                            <flux:button type="button" variant="ghost" wire:click="cancelarEdicion">
+                                {{ __('Cancelar') }}
+                            </flux:button>
+                            <flux:button
+                                type="submit" variant="primary" icon="check"
+                                wire:loading.attr="disabled"
+                            >
+                                <span wire:loading.remove wire:target="guardarEdicion">{{ __('Guardar cambios') }}</span>
+                                <span wire:loading wire:target="guardarEdicion">{{ __('Guardando...') }}</span>
+                            </flux:button>
+                        </div>
+                    </form>
+                </x-ui.section-card>
             @endif
 
             {{-- Rechazado --}}
